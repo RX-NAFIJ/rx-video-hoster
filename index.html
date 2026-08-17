@@ -216,6 +216,64 @@
     position:absolute; top:22px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.7);
     font-size:12.5px; background:rgba(255,255,255,0.1); padding:5px 12px; border-radius:20px; z-index:2;
   }
+
+  /* ---------- WELCOME POPUP ---------- */
+  #welcomePopup{
+    display:none; position:fixed; inset:0; z-index:50; background:rgba(5,5,9,0.88);
+    backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:24px;
+  }
+  #welcomePopup.show{display:flex;}
+  .welcome-card{
+    width:100%; max-width:380px; background:linear-gradient(160deg, rgba(255,140,90,0.12), rgba(20,16,20,0.9));
+    border:1px solid var(--glass-brd); border-radius:28px; padding:32px 26px; text-align:center;
+    box-shadow:0 24px 70px rgba(0,0,0,0.55); animation:popIn .35s ease;
+  }
+  @keyframes popIn{from{opacity:0; transform:scale(0.92) translateY(10px);} to{opacity:1; transform:scale(1) translateY(0);}}
+  .welcome-icon{
+    width:64px; height:64px; margin:0 auto 14px; border-radius:50%;
+    background:linear-gradient(135deg,var(--violet),var(--cyan)); display:flex; align-items:center; justify-content:center;
+    font-size:30px; box-shadow:0 0 30px rgba(255,107,74,0.5);
+  }
+  .welcome-card h2{font-family:'Baloo Da 2'; font-size:19px; font-weight:700; margin-bottom:6px;}
+  .welcome-sub{color:var(--sub); font-size:13px; margin-bottom:18px;}
+  .welcome-rules{list-style:none; text-align:left; margin-bottom:22px;}
+  .welcome-rules li{
+    display:flex; align-items:flex-start; gap:10px; font-size:13px; color:var(--text);
+    padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.06); line-height:1.5;
+  }
+  .welcome-rules li:last-child{border-bottom:none;}
+  .welcome-rules li span{flex-shrink:0; font-size:15px;}
+  #welcomeCloseBtn{
+    width:100%; padding:14px; border:none; border-radius:999px; font-size:15px; font-weight:700;
+    background:linear-gradient(135deg,var(--violet),var(--cyan)); color:#1a0a05; cursor:pointer;
+    font-family:inherit; box-shadow:0 10px 28px rgba(255,107,74,0.35);
+  }
+  #welcomeCloseBtn:active{transform:scale(0.97);}
+
+  /* ---------- CUSTOM CONFIRM POPUP ---------- */
+  #customConfirmModal{
+    display:none; position:fixed; inset:0; z-index:55; background:rgba(5,5,9,0.85);
+    backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:24px;
+  }
+  #customConfirmModal.show{display:flex;}
+  .confirm-card{
+    width:100%; max-width:320px; background:rgba(20,16,20,0.96); border:1px solid var(--glass-brd);
+    border-radius:24px; padding:28px 24px; text-align:center; animation:popIn .25s ease;
+  }
+  .confirm-icon{
+    width:52px; height:52px; margin:0 auto 14px; border-radius:50%;
+    background:rgba(255,92,122,0.15); border:1px solid rgba(255,92,122,0.3);
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+  }
+  #confirmMessage{font-size:13.5px; color:var(--text); line-height:1.6; margin-bottom:20px;}
+  .confirm-actions{display:flex; gap:10px;}
+  .confirm-actions button{
+    flex:1; padding:12px 0; border-radius:999px; border:none; font-size:13.5px; font-weight:700; cursor:pointer;
+    font-family:inherit;
+  }
+  #confirmCancelBtn{background:var(--glass); color:var(--sub); border:1px solid var(--glass-brd) !important;}
+  #confirmOkBtn{background:linear-gradient(135deg,var(--danger),#ff8a9d); color:#2a0a0a;}
+
   .spinner{
     width:22px; height:22px; border:3px solid rgba(255,255,255,0.2); border-top-color:var(--cyan);
     border-radius:50%; animation:spin .8s linear infinite; margin:0 auto;
@@ -430,6 +488,35 @@
   <button class="modal-nav" id="modalNext">›</button>
 </div>
 
+<!-- WELCOME POPUP -->
+<div id="welcomePopup">
+  <div class="welcome-card">
+    <div class="welcome-icon">👋</div>
+    <h2>স্বাগতম, RX Hoster-এ!</h2>
+    <p class="welcome-sub">শুরু করার আগে ছোট্ট কয়েকটা নিয়ম পড়ে নাও —</p>
+    <ul class="welcome-rules">
+      <li><span>🚫</span> কপিরাইটযুক্ত বা অন্যের অনুমতি ছাড়া কনটেন্ট আপলোড করা যাবে না</li>
+      <li><span>🚫</span> কোনো ক্ষতিকর, অবৈধ বা আপত্তিকর ছবি/ভিডিও আপলোড নিষেধ</li>
+      <li><span>✅</span> শুধু নিজের বৈধ ছবি/ভিডিও শেয়ার করুন</li>
+      <li><span>⚠️</span> নিয়ম ভঙ্গ করা কনটেন্ট বিনা নোটিশে মুছে ফেলা হতে পারে</li>
+    </ul>
+    <button id="welcomeCloseBtn">বুঝেছি, শুরু করি 🚀</button>
+    <div class="dev-credit">Developer RX Nafij</div>
+  </div>
+</div>
+
+<!-- CUSTOM CONFIRM POPUP -->
+<div id="customConfirmModal">
+  <div class="confirm-card">
+    <div class="confirm-icon">🗑️</div>
+    <p id="confirmMessage"></p>
+    <div class="confirm-actions">
+      <button id="confirmCancelBtn">বাতিল</button>
+      <button id="confirmOkBtn">ডিলিট করো</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ---------- OBFUSCATED CONFIG ----------
 // Values below are XOR-ciphered (hex) so they don't sit as plain text in the page source.
@@ -486,6 +573,7 @@ function tryLogin(){
     loginScreen.style.display='none';
     galleryScreen.style.display='block';
     startListening();
+    maybeShowWelcome();
   } else {
     loginErr.textContent = 'পাসওয়ার্ড ভুল হয়েছে';
     pwInput.value='';
@@ -493,6 +581,41 @@ function tryLogin(){
 }
 document.getElementById('loginBtn').onclick = tryLogin;
 pwInput.addEventListener('keydown', e => { if(e.key==='Enter') tryLogin(); });
+
+// ---------- WELCOME POPUP (once per session, after unlock) ----------
+function maybeShowWelcome(){
+  if(sessionStorage.getItem('hoster_welcome_shown')==='1') return;
+  document.getElementById('welcomePopup').classList.add('show');
+}
+document.getElementById('welcomeCloseBtn').onclick = () => {
+  sessionStorage.setItem('hoster_welcome_shown','1');
+  document.getElementById('welcomePopup').classList.remove('show');
+};
+
+// ---------- CUSTOM CONFIRM POPUP (replaces browser confirm()) ----------
+function customConfirm(message, opts={}){
+  const { okText = 'ডিলিট করো', icon = '🗑️' } = opts;
+  const modalEl = document.getElementById('customConfirmModal');
+  document.getElementById('confirmMessage').textContent = message;
+  document.getElementById('confirmOkBtn').textContent = okText;
+  document.querySelector('.confirm-icon').textContent = icon;
+  modalEl.classList.add('show');
+
+  return new Promise(resolve => {
+    const okBtn = document.getElementById('confirmOkBtn');
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+    function cleanup(result){
+      modalEl.classList.remove('show');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      resolve(result);
+    }
+    function onOk(){ cleanup(true); }
+    function onCancel(){ cleanup(false); }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+  });
+}
 
 document.getElementById('logoutBtn').onclick = () => {
   sessionStorage.removeItem('vault_auth');
@@ -503,6 +626,7 @@ if(sessionStorage.getItem('vault_auth')==='1'){
   loginScreen.style.display='none';
   galleryScreen.style.display='block';
   startListening();
+  maybeShowWelcome();
 }
 
 // hidden "click to copy password" — looks like decorative icons, quietly copies on tap
@@ -692,7 +816,7 @@ function renderMgmtList(){
       const id = b.dataset.id;
       const it = source[id];
       if(!it) return;
-      const proceed = confirm(`"${it.name||'ফাইলটি'}" ডিলিট করবে? এটা আর ফেরত আনা যাবে না।`);
+      const proceed = await customConfirm(`"${it.name||'ফাইলটি'}" ডিলিট করবে? এটা আর ফেরত আনা যাবে না।`);
       if(!proceed) return;
       try{
         await mgmtTargetDb().child(id).remove();
@@ -716,7 +840,7 @@ document.getElementById('adminBulkCancelBtn').onclick = () => {
 
 document.getElementById('adminBulkDeleteBtn').onclick = async () => {
   if(mgmtSelectedIds.size === 0) return;
-  const proceed = confirm(`${mgmtSelectedIds.size}টা ফাইল ডিলিট করবে? এটা আর ফেরত আনা যাবে না।`);
+  const proceed = await customConfirm(`${mgmtSelectedIds.size}টা ফাইল ডিলিট করবে? এটা আর ফেরত আনা যাবে না।`);
   if(!proceed) return;
 
   const source = mgmtSourceItems();
@@ -1069,7 +1193,7 @@ fileInput.addEventListener('change', async () => {
 
   const bigFiles = validFiles.filter(f => f.size > MAX_TG_DOWNLOAD);
   if(bigFiles.length){
-    const proceed = confirm(`${bigFiles.length}টা ফাইল ২০MB এর বড়। Telegram Bot API-তে ২০MB এর বড় ফাইল প্রিভিউ/ডাউনলোড করা যায় না। তাও কি আপলোড করবে?`);
+    const proceed = await customConfirm(`${bigFiles.length}টা ফাইল ২০MB এর বড়। Telegram Bot API-তে ২০MB এর বড় ফাইল প্রিভিউ/ডাউনলোড করা যায় না। তাও কি আপলোড করবে?`, {okText:'আপলোড করো', icon:'⚠️'});
     if(!proceed) return;
   }
 
