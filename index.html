@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>RX Hoster — ছবি/ভিডিও হোস্টিং</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@500;600;700;800&family=Hind+Siliguri:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --bg:#0B0E14;
+    --violet:#FF6B4A;
+    --violet-2:#FF8D6B;
+    --cyan:#FFC24B;
+    --amber:#FFC24B;
+    --rose:#EF4D8B;
+    --glass:rgba(255,255,255,0.05);
+    --glass-brd:rgba(255,140,90,0.18);
+    --text:#FBEDE4;
+    --sub:#B8A398;
+    --danger:#FF5C7A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Hind Siliguri','Baloo Da 2',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+  .bg-orb{
+    position:fixed; border-radius:50%; filter:blur(90px); z-index:0; opacity:0.35; pointer-events:none;
+  }
+  .orb1{width:420px;height:420px; background:var(--violet); top:-140px; left:-120px; animation:float1 14s ease-in-out infinite;}
+  .orb2{width:380px;height:380px; background:var(--cyan); bottom:-160px; right:-100px; animation:float2 16s ease-in-out infinite;}
+  @keyframes float1{0%,100%{transform:translate(0,0);}50%{transform:translate(40px,60px);}}
+  @keyframes float2{0%,100%{transform:translate(0,0);}50%{transform:translate(-50px,-40px);}}
+
+  /* ---------- LOGIN ---------- */
+  #loginScreen{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10; padding:24px;
+  }
+  .login-card{
+    width:100%; max-width:360px; background:var(--glass); border:1px solid var(--glass-brd);
+    border-radius:24px; padding:36px 28px; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    box-shadow:0 20px 60px rgba(0,0,0,0.45);
+    text-align:center;
+  }
+  .login-icon{
+    width:66px; height:66px; margin:0 auto 18px; border-radius:50%;
+    background:linear-gradient(135deg,var(--violet),var(--cyan));
+    display:flex; align-items:center; justify-content:center; font-size:28px;
+    box-shadow:0 0 34px rgba(255,107,74,0.5);
+    cursor:default; user-select:none; transition:transform .15s;
+  }
+  .login-icon.copied{transform:scale(0.88);}
+  .login-card h1{font-family:'Baloo Da 2'; font-size:20px; font-weight:600; margin-bottom:6px;}
+  .login-card p{color:var(--sub); font-size:13.5px; margin-bottom:26px;}
+  .pw-wrap{position:relative; margin-bottom:16px;}
+  #pwInput{
+    width:100%; padding:14px 16px; border-radius:14px; border:1px solid var(--glass-brd);
+    background:rgba(255,255,255,0.04); color:var(--text); font-size:15px; outline:none;
+    transition:border-color .2s;
+    font-family:inherit;
+  }
+  #pwInput:focus{border-color:var(--violet-2);}
+  #loginBtn{
+    width:100%; padding:14px; border:none; border-radius:999px; font-size:15px; font-weight:700;
+    background:linear-gradient(135deg,var(--violet),var(--cyan)); color:#1a0a05; cursor:pointer;
+    font-family:inherit; transition:transform .15s, box-shadow .15s;
+  }
+  #loginBtn:active{transform:scale(0.97);}
+  #loginErr{color:var(--danger); font-size:13px; margin-top:12px; min-height:16px;}
+
+  /* ---------- GALLERY ---------- */
+  #galleryScreen{display:none; position:relative; z-index:1; min-height:100vh; padding-bottom:110px;}
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 20px 14px;
+  }
+  header h2{font-family:'Baloo Da 2'; font-size:19px; font-weight:600; user-select:none;}
+  header h2 span{color:var(--cyan);}
+  #logoutBtn{
+    background:var(--glass); border:1px solid var(--glass-brd); color:var(--sub);
+    padding:8px 14px; border-radius:12px; font-size:13px; cursor:pointer; font-family:inherit;
+  }
+  #adminBtn{
+    background:var(--glass); border:1px solid var(--glass-brd); color:var(--cyan);
+    width:36px; height:36px; border-radius:12px; font-size:14px; cursor:pointer; font-family:inherit;
+  }
+
+  .tabs{display:flex; gap:8px; padding:6px 20px 18px;}
+  .tab-btn{
+    flex:1; padding:12px 0; text-align:center; border-radius:999px; border:1px solid var(--glass-brd);
+    background:var(--glass); color:var(--sub); font-size:13.5px; font-weight:700; cursor:pointer;
+    font-family:inherit; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .tab-btn.active{
+    color:#0a0a0a; border-color:transparent;
+  }
+  .tab-btn[data-type="photo"].active{background:linear-gradient(135deg,var(--cyan),#67e8f9); box-shadow:0 6px 20px rgba(34,211,238,0.35);}
+  .tab-btn[data-type="video"].active{background:linear-gradient(135deg,var(--amber),#fcd34d); box-shadow:0 6px 20px rgba(251,191,36,0.35);}
+  .tab-count{
+    font-size:10.5px; background:rgba(255,255,255,0.15); padding:2px 6px; border-radius:20px;
+  }
+  .tab-btn.active .tab-count{background:rgba(0,0,0,0.2);}
+
+  #grid{
+    padding:4px 20px 20px; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:14px;
+  }
+  /* ---------- SEARCH ROW ---------- */
+  .search-row{display:flex; gap:8px; padding:0 20px 14px;}
+  #searchInput{
+    flex:1; padding:11px 16px; border-radius:999px; border:1px solid var(--glass-brd);
+    background:rgba(255,255,255,0.04); color:var(--text); font-size:13.5px; outline:none;
+    font-family:inherit;
+  }
+  #searchInput:focus{border-color:var(--violet-2);}
+  .card{position:relative;}
+  .card{
+    background:var(--glass); border:1px solid var(--glass-brd); border-radius:24px; overflow:hidden;
+    display:flex; flex-direction:column; transition:transform .2s;
+  }
+  .card-thumb{
+    width:100%; aspect-ratio:1/1; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center;
+    position:relative; overflow:hidden;
+  }
+  .card-thumb img{width:100%; height:100%; object-fit:cover;}
+  .thumb-icon{font-size:34px; opacity:0.6;}
+  .play-overlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:18px; color:#fff; background:rgba(0,0,0,0.15);
+    text-shadow:0 2px 8px rgba(0,0,0,0.6); pointer-events:none;
+  }
+  .play-overlay::before{
+    content:''; position:absolute; width:36px; height:36px; border-radius:50%;
+    background:rgba(0,0,0,0.35); backdrop-filter:blur(2px);
+  }
+  .badge{
+    position:absolute; top:8px; left:8px; font-size:10.5px; padding:3px 8px; border-radius:20px; font-weight:600;
+  }
+  .badge.photo{background:rgba(34,211,238,0.2); color:var(--cyan); border:1px solid rgba(34,211,238,0.4);}
+  .badge.video{background:rgba(251,191,36,0.2); color:var(--amber); border:1px solid rgba(251,191,36,0.4);}
+  .card-body{padding:10px 10px 12px;}
+  .card-name{font-size:12.5px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:9px;}
+  .card-actions{display:flex; gap:6px;}
+  .card-actions button{
+    flex:1; padding:8px 0; border-radius:999px; border:none; font-size:11.5px; font-weight:700; cursor:pointer;
+    font-family:inherit;
+  }
+  .btn-preview{background:rgba(139,92,246,0.18); color:var(--violet-2); border:1px solid rgba(139,92,246,0.3) !important;}
+  .btn-download{background:rgba(255,255,255,0.08); color:var(--text); border:1px solid var(--glass-brd) !important;}
+
+  #emptyState{
+    text-align:center; padding:60px 20px; color:var(--sub); display:none;
+  }
+  #emptyState .e-icon{font-size:44px; margin-bottom:14px; opacity:0.5;}
+
+  /* ---------- DEV CREDIT ---------- */
+  .dev-credit{
+    text-align:center; font-size:11.5px; font-weight:600; letter-spacing:0.4px;
+    color:var(--sub); opacity:0.55; margin-top:18px; user-select:none;
+  }
+
+  /* FAB */
+  #fab{
+    position:fixed; bottom:28px; right:24px; width:58px; height:58px; border-radius:50%;
+    background:linear-gradient(135deg,var(--violet),var(--cyan)); border:none; color:#0a0a0a;
+    font-size:28px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5;
+    box-shadow:0 10px 30px rgba(139,92,246,0.5); transition:transform .15s, background .2s;
+  }
+  #fab:active{transform:scale(0.92);}
+  #fab.hidden{display:none;}
+  #fileInput{display:none;}
+
+  /* Toast */
+  #toast{
+    position:fixed; bottom:100px; left:50%; transform:translateX(-50%) translateY(20px); z-index:20;
+    background:rgba(20,20,26,0.95); border:1px solid var(--glass-brd); padding:12px 20px; border-radius:14px;
+    font-size:13.5px; opacity:0; transition:all .3s; pointer-events:none; max-width:88vw; text-align:center;
+    backdrop-filter:blur(10px);
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  /* Modal — fullscreen gallery-style viewer */
+  #modal{
+    position:fixed; inset:0; background:#000; z-index:30; display:none;
+    align-items:center; justify-content:center; padding:0;
+  }
+  #modal.show{display:flex;}
+  .modal-content{
+    width:100vw; height:100vh; display:flex; align-items:center; justify-content:center;
+    overflow:hidden; touch-action:pan-y;
+  }
+  .modal-content img, .modal-content video{
+    max-width:100vw; max-height:100vh; width:auto; height:auto; display:block; object-fit:contain;
+  }
+  #modalClose{
+    position:absolute; top:18px; right:18px; width:42px; height:42px; border-radius:50%;
+    background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; font-size:20px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:2;
+  }
+  .modal-nav{
+    position:absolute; top:50%; transform:translateY(-50%); width:46px; height:46px; border-radius:50%;
+    background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; font-size:20px;
+    cursor:pointer; display:none; align-items:center; justify-content:center; z-index:2;
+  }
+  .modal-nav.show{display:flex;}
+  #modalPrev{left:14px;}
+  #modalNext{right:14px;}
+  #modalCounter{
+    position:absolute; top:22px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.7);
+    font-size:12.5px; background:rgba(255,255,255,0.1); padding:5px 12px; border-radius:20px; z-index:2;
+  }
+  .spinner{
+    width:22px; height:22px; border:3px solid rgba(255,255,255,0.2); border-top-color:var(--cyan);
+    border-radius:50%; animation:spin .8s linear infinite; margin:0 auto;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ---------- ADMIN PANEL ---------- */
+  #adminPanel{
+    display:none; position:fixed; inset:0; z-index:40; background:rgba(5,5,9,0.97);
+    backdrop-filter:blur(10px); overflow-y:auto;
+  }
+  #adminPanel.show{display:block;}
+  .admin-inner{max-width:480px; margin:0 auto; padding:24px 20px 100px;}
+  .admin-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;}
+  .admin-header h3{font-size:17px; font-weight:600;}
+  #adminCloseBtn{
+    width:38px; height:38px; border-radius:50%; background:var(--glass); border:1px solid var(--glass-brd);
+    color:var(--text); font-size:17px; cursor:pointer;
+  }
+
+  /* admin password gate */
+  #adminLock{display:block; text-align:center; padding:40px 10px;}
+  #adminContent{display:none;}
+  .admin-icon{
+    width:56px; height:56px; margin:0 auto 16px; border-radius:16px;
+    background:linear-gradient(135deg,var(--violet),var(--cyan)); display:flex; align-items:center; justify-content:center;
+    font-size:24px; box-shadow:0 0 24px rgba(139,92,246,0.4); cursor:default; user-select:none; transition:transform .15s;
+  }
+  .admin-icon.copied{transform:scale(0.88);}
+  #adminLock p{color:var(--sub); font-size:13.5px; margin-bottom:18px;}
+  #adminPwInput{
+    width:100%; max-width:280px; padding:13px 16px; border-radius:12px; border:1px solid var(--glass-brd);
+    background:rgba(255,255,255,0.04); color:var(--text); font-size:14.5px; outline:none; margin-bottom:12px;
+    font-family:inherit;
+  }
+  #adminUnlockBtn{
+    width:100%; max-width:280px; padding:13px; border:none; border-radius:12px; font-size:14.5px; font-weight:600;
+    background:linear-gradient(135deg,var(--violet),var(--cyan)); color:#0a0a0a; cursor:pointer; font-family:inherit;
+  }
+  #adminErr{color:var(--danger); font-size:12.5px; margin-top:10px; min-height:14px;}
+
+  .stats-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px;}
+  .stat-box{
+    background:var(--glass); border:1px solid var(--glass-brd); border-radius:16px; padding:16px; text-align:center;
+  }
+  .stat-num{font-family:'Baloo Da 2'; font-size:22px; font-weight:700; color:var(--cyan); margin-bottom:4px;}
+  .stat-label{font-size:12px; color:var(--sub);}
+  .log-title{font-size:13.5px; color:var(--sub); margin-bottom:10px; font-weight:600;}
+  #logList{display:flex; flex-direction:column; gap:8px;}
+  .log-item{
+    background:var(--glass); border:1px solid var(--glass-brd); border-radius:12px; padding:11px 14px;
+    display:flex; align-items:center; gap:10px; font-size:12.5px;
+  }
+  .log-icon{font-size:15px; width:22px; text-align:center; flex-shrink:0;}
+  .log-text{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text);}
+  .log-time{color:var(--sub); font-size:11px; flex-shrink:0;}
+  .log-empty{text-align:center; color:var(--sub); font-size:13px; padding:30px 0;}
+
+  /* management (delete) rows inside admin panel */
+  .mgmt-tabs{display:flex; gap:8px; margin-bottom:12px;}
+  .mgmt-tab{
+    flex:1; padding:9px 0; text-align:center; border-radius:10px; border:1px solid var(--glass-brd);
+    background:var(--glass); color:var(--sub); font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;
+  }
+  .mgmt-tab.active{background:linear-gradient(135deg,var(--violet),var(--cyan)); color:#0a0a0a; border-color:transparent;}
+  #mgmtList{display:flex; flex-direction:column; gap:8px; margin-bottom:8px;}
+  .mgmt-row{
+    display:flex; align-items:center; gap:10px; background:var(--glass); border:1px solid var(--glass-brd);
+    border-radius:12px; padding:10px 12px;
+  }
+  .mgmt-checkbox{
+    width:20px; height:20px; border-radius:6px; border:2px solid rgba(255,255,255,0.35); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; cursor:pointer;
+  }
+  .mgmt-checkbox.checked{background:var(--violet); border-color:var(--violet);}
+  .mgmt-thumb{
+    width:44px; height:44px; border-radius:9px; background:rgba(255,255,255,0.05); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;
+  }
+  .mgmt-thumb img{width:100%; height:100%; object-fit:cover;}
+  .mgmt-thumb .mgmt-thumb-icon{font-size:18px; opacity:0.6;}
+  .mgmt-thumb .play-overlay{font-size:11px;}
+  .mgmt-thumb .play-overlay::before{width:20px; height:20px;}
+  .mgmt-info{flex:1; min-width:0;}
+  .mgmt-name{font-size:12.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .mgmt-meta{font-size:11px; color:var(--sub); margin-top:2px;}
+  .mgmt-del{
+    width:30px; height:30px; border-radius:8px; border:1px solid rgba(248,113,113,0.3); flex-shrink:0;
+    background:rgba(248,113,113,0.12); color:#fca5a5; font-size:13px; cursor:pointer;
+  }
+
+  /* bulk bar inside admin panel */
+  #adminBulkBar{
+    display:none; position:fixed; bottom:0; left:0; right:0; z-index:41;
+    background:rgba(15,15,20,0.97); border-top:1px solid var(--glass-brd); backdrop-filter:blur(14px);
+    padding:14px 20px calc(14px + env(safe-area-inset-bottom)); align-items:center; justify-content:space-between;
+  }
+  #adminBulkBar.show{display:flex;}
+  #adminBulkCount{font-size:13.5px; color:var(--sub);}
+  .bulk-actions{display:flex; gap:8px;}
+  .bulk-actions button{
+    padding:10px 16px; border-radius:10px; border:none; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:inherit;
+  }
+  #adminBulkCancelBtn{background:var(--glass); color:var(--sub); border:1px solid var(--glass-brd) !important;}
+  #adminBulkDeleteBtn{background:linear-gradient(135deg,var(--danger),#fca5a5); color:#2a0a0a;}
+</style>
+</head>
+<body>
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-icon" id="loginIcon">🔒</div>
+    <h1>RX Hoster</h1>
+    <p>এন্টার করতে পাসওয়ার্ড দাও</p>
+    <div class="pw-wrap">
+      <input type="password" id="pwInput" placeholder="পাসওয়ার্ড" autocomplete="off">
+    </div>
+    <button id="loginBtn">আনলক করো</button>
+    <div id="loginErr"></div>
+    <div class="dev-credit">Developer RX Nafij</div>
+  </div>
+</div>
+
+
+<!-- GALLERY -->
+<div id="galleryScreen">
+  <header>
+    <h2>RX <span>Hoster</span></h2>
+    <div style="display:flex; gap:8px;">
+      <button id="adminBtn" title="অ্যাডমিন প্যানেল">📊</button>
+      <button id="logoutBtn">লগআউট</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-type="photo">📷 ছবি <span class="tab-count" id="photoCount">0</span></button>
+    <button class="tab-btn" data-type="video">🎬 ভিডিও <span class="tab-count" id="videoCount">0</span></button>
+  </div>
+
+  <div class="search-row">
+    <input type="text" id="searchInput" placeholder="🔍 নাম দিয়ে খোঁজো...">
+  </div>
+
+  <div id="grid"></div>
+  <div id="emptyState">
+    <div class="e-icon">🗂️</div>
+    <div id="emptyText">এখনো কিছু আপলোড হয়নি — নিচের + বাটনে চাপো</div>
+  </div>
+
+  <div class="dev-credit gallery-credit">Developer RX Nafij</div>
+</div>
+
+<div id="adminPanel">
+  <div class="admin-inner">
+    <div class="admin-header">
+      <h3>📊 অ্যাডমিন প্যানেল</h3>
+      <button id="adminCloseBtn">✕</button>
+    </div>
+
+    <!-- password gate -->
+    <div id="adminLock">
+      <div class="admin-icon" id="adminIcon">🛡️</div>
+      <p>এই প্যানেলে ঢুকতে অ্যাডমিন পাসওয়ার্ড লাগবে</p>
+      <input type="password" id="adminPwInput" placeholder="অ্যাডমিন পাসওয়ার্ড" autocomplete="off">
+      <button id="adminUnlockBtn">আনলক করো</button>
+      <div id="adminErr"></div>
+    </div>
+
+    <!-- unlocked content -->
+    <div id="adminContent">
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-num" id="statPhotos">0</div><div class="stat-label">ছবি</div></div>
+        <div class="stat-box"><div class="stat-num" id="statVideos">0</div><div class="stat-label">ভিডিও</div></div>
+        <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">মোট ফাইল</div></div>
+        <div class="stat-box"><div class="stat-num" id="statSize">0 MB</div><div class="stat-label">মোট সাইজ</div></div>
+      </div>
+
+      <h4 class="log-title">ফাইল ম্যানেজমেন্ট (ডিলিট)</h4>
+      <div class="mgmt-tabs">
+        <button class="mgmt-tab active" data-type="photo">ছবি</button>
+        <button class="mgmt-tab" data-type="video">ভিডিও</button>
+      </div>
+      <div id="mgmtList"></div>
+
+      <h4 class="log-title" style="margin-top:24px;">আপলোড/ডিলিট হিস্ট্রি</h4>
+      <div id="logList"></div>
+    </div>
+  </div>
+
+  <div id="adminBulkBar">
+    <span id="adminBulkCount">০টা নির্বাচিত</span>
+    <div class="bulk-actions">
+      <button id="adminBulkCancelBtn">বাতিল</button>
+      <button id="adminBulkDeleteBtn">🗑️ ডিলিট করো</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*,video/*" multiple>
+<button id="fab">+</button>
+<div id="toast"></div>
+
+<div id="modal">
+  <button id="modalClose">✕</button>
+  <div id="modalCounter"></div>
+  <button class="modal-nav" id="modalPrev">‹</button>
+  <div class="modal-content" id="modalContent"></div>
+  <button class="modal-nav" id="modalNext">›</button>
+</div>
+
+<script>
+// ---------- OBFUSCATED CONFIG ----------
+// Values below are XOR-ciphered (hex) so they don't sit as plain text in the page source.
+// This raises the bar against casual "view source" snooping — it is NOT real encryption,
+// since the browser must decode these at runtime to actually work.
+const _K = "RxVaultKey2026";
+function _d(hex){
+  const bytes = hex.match(/.{1,2}/g).map(h => parseInt(h,16));
+  let out = '';
+  for(let i=0;i<bytes.length;i++){
+    out += String.fromCharCode(bytes[i] ^ _K.charCodeAt(i % _K.length));
+  }
+  return out;
+}
+
+const BOT_TOKEN = _d("6a4b6154465a407d534a0871737e674e1a3044004014564e6b605169230033222a1a370f03217f44544323171928");
+const CHAT_ID   = _d("654064564c5540725441");
+const PASSWORD  = _d("1c3910283f2c4579544a");
+const ADMIN_PASSWORD = PASSWORD;   // same password reused for the admin panel
+
+const firebaseConfig = {
+  apiKey: _d("13312c002615301b04540a45755c2327202a58202018351201427c5b0d0902122a0f4c2c2b4967"),
+  authDomain: _d("261726140541102d524c031e545f201d34000609153b1557515f5f"),
+  databaseURL: _d("3a0c221106565b6411164245421b361e61544441102e0318475c461b200c32035b0a1d39001b5343575f3d56350e18"),
+  projectId: _d("261726140541102d524c03"),
+  storageBucket: _d("261726140541102d524c031e545f201d34000609073f0a0b53575718330826"),
+  messagingSenderId: _d("63486657475e41785148040807"),
+  appId: _d("63426751455a4679504a0601040e6742210417564c7e551b0b060304641c6e001154107f034c0b095055")
+};
+
+const MAX_TG_DOWNLOAD = 20 * 1024 * 1024; // 20MB — Telegram Bot API getFile limit
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database().ref('hoster_gallery');
+const logRef = firebase.database().ref('hoster_log');
+
+// ---------- STATE ----------
+let activeTab = 'photo';
+let items = {};        // id -> item
+let adminUnlocked = false;
+let searchQuery = '';
+let mgmtType = 'photo';         // which type the admin management list is showing
+let mgmtSelectedIds = new Set();
+
+// ---------- LOGIN ----------
+const loginScreen = document.getElementById('loginScreen');
+const galleryScreen = document.getElementById('galleryScreen');
+const pwInput = document.getElementById('pwInput');
+const loginErr = document.getElementById('loginErr');
+
+function tryLogin(){
+  if(pwInput.value === PASSWORD){
+    sessionStorage.setItem('vault_auth','1');
+    loginScreen.style.display='none';
+    galleryScreen.style.display='block';
+    startListening();
+  } else {
+    loginErr.textContent = 'পাসওয়ার্ড ভুল হয়েছে';
+    pwInput.value='';
+  }
+}
+document.getElementById('loginBtn').onclick = tryLogin;
+pwInput.addEventListener('keydown', e => { if(e.key==='Enter') tryLogin(); });
+
+document.getElementById('logoutBtn').onclick = () => {
+  sessionStorage.removeItem('vault_auth');
+  location.reload();
+};
+
+if(sessionStorage.getItem('vault_auth')==='1'){
+  loginScreen.style.display='none';
+  galleryScreen.style.display='block';
+  startListening();
+}
+
+// hidden "click to copy password" — looks like decorative icons, quietly copies on tap
+function wireCopyIcon(el, value){
+  el.addEventListener('click', () => {
+    navigator.clipboard?.writeText(value).catch(()=>{});
+    el.classList.add('copied');
+    setTimeout(()=>el.classList.remove('copied'), 220);
+  });
+}
+wireCopyIcon(document.getElementById('loginIcon'), PASSWORD);
+wireCopyIcon(document.getElementById('adminIcon'), ADMIN_PASSWORD);
+
+// ---------- ADMIN PASSWORD UNLOCK ----------
+const adminPwInput = document.getElementById('adminPwInput');
+const adminErr = document.getElementById('adminErr');
+const adminLock = document.getElementById('adminLock');
+const adminContent = document.getElementById('adminContent');
+
+if(sessionStorage.getItem('vault_admin_auth')==='1'){
+  adminUnlocked = true;
+}
+
+function tryAdminUnlock(){
+  if(adminPwInput.value === ADMIN_PASSWORD){
+    adminUnlocked = true;
+    sessionStorage.setItem('vault_admin_auth','1');
+    showAdminContent();
+  } else {
+    adminErr.textContent = 'পাসওয়ার্ড ভুল হয়েছে';
+    adminPwInput.value='';
+  }
+}
+document.getElementById('adminUnlockBtn').onclick = tryAdminUnlock;
+adminPwInput.addEventListener('keydown', e => { if(e.key==='Enter') tryAdminUnlock(); });
+
+function showAdminContent(){
+  adminLock.style.display = 'none';
+  adminContent.style.display = 'block';
+  renderAdminStats();
+  renderMgmtList();
+  renderActivityLog();
+}
+
+// ---------- ACTIVITY LOG HELPER ----------
+async function logAction(action, name, type, section){
+  try{
+    await logRef.push({ action, name, type, section, timestamp: Date.now() });
+  }catch(e){ /* logging failure shouldn't block the main action */ }
+}
+
+// ---------- SEARCH ----------
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchQuery = e.target.value.trim().toLowerCase();
+  render();
+});
+
+// ---------- ADMIN PANEL OPEN/CLOSE ----------
+const adminPanel = document.getElementById('adminPanel');
+document.getElementById('adminBtn').onclick = () => {
+  adminPanel.classList.add('show');
+  if(adminUnlocked){
+    showAdminContent();
+  } else {
+    adminLock.style.display = 'block';
+    adminContent.style.display = 'none';
+  }
+};
+document.getElementById('adminCloseBtn').onclick = () => {
+  adminPanel.classList.remove('show');
+  mgmtSelectedIds.clear();
+  document.getElementById('adminBulkBar').classList.remove('show');
+};
+
+function formatSize(bytes){
+  if(!bytes) return '0 MB';
+  return (bytes / (1024*1024)).toFixed(1) + ' MB';
+}
+
+function timeAgo(ts){
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if(diff < 60) return 'এখনই';
+  if(diff < 3600) return Math.floor(diff/60) + ' মিনিট আগে';
+  if(diff < 86400) return Math.floor(diff/3600) + ' ঘণ্টা আগে';
+  return Math.floor(diff/86400) + ' দিন আগে';
+}
+
+function renderAdminStats(){
+  const allPublic = Object.values(items);
+  const photos = allPublic.filter(it=>it.type==='photo').length;
+  const videos = allPublic.filter(it=>it.type==='video').length;
+  const totalSize = allPublic.reduce((sum,it)=>sum+(it.size||0), 0);
+
+  document.getElementById('statPhotos').textContent = photos;
+  document.getElementById('statVideos').textContent = videos;
+  document.getElementById('statTotal').textContent = allPublic.length;
+  document.getElementById('statSize').textContent = formatSize(totalSize);
+}
+
+// ---------- ADMIN: FILE MANAGEMENT (DELETE) ----------
+document.querySelectorAll('.mgmt-tab').forEach(btn=>{
+  btn.onclick = () => {
+    document.querySelectorAll('.mgmt-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    mgmtType = btn.dataset.type;
+    mgmtSelectedIds.clear();
+    document.getElementById('adminBulkBar').classList.remove('show');
+    renderMgmtList();
+  };
+});
+
+function mgmtSourceItems(){
+  return items;
+}
+function mgmtTargetDb(){
+  return db;
+}
+function mgmtSection(){
+  return 'public';
+}
+
+function renderMgmtList(){
+  const list = document.getElementById('mgmtList');
+  const source = mgmtSourceItems();
+  const entries = Object.entries(source)
+    .filter(([id,it]) => it.type === mgmtType)
+    .sort((a,b) => (b[1].timestamp||0) - (a[1].timestamp||0));
+
+  if(entries.length === 0){
+    list.innerHTML = '<div class="log-empty">কিছু নেই</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  for(const [id, it] of entries){
+    const row = document.createElement('div');
+    row.className = 'mgmt-row';
+    const checked = mgmtSelectedIds.has(id);
+    row.innerHTML = `
+      <div class="mgmt-checkbox ${checked?'checked':''}" data-id="${id}">${checked?'✓':''}</div>
+      <div class="mgmt-thumb" id="mgmt-thumb-${id}">
+        <span class="mgmt-thumb-icon">${it.type==='photo'?'🖼️':'🎬'}</span>
+      </div>
+      <div class="mgmt-info">
+        <div class="mgmt-name">${escapeHtml(it.name||'ফাইল')}</div>
+        <div class="mgmt-meta">${it.type==='photo'?'ছবি':'ভিডিও'} · ${formatSize(it.size)}</div>
+      </div>
+      <button class="mgmt-del" data-id="${id}">🗑️</button>
+    `;
+    list.appendChild(row);
+
+    // load a real thumbnail — photo: the file itself, video: its saved thumbFileId (if any)
+    const thumbSourceId = it.type === 'photo' ? it.fileId : it.thumbFileId;
+    if(thumbSourceId){
+      resolveFileUrl(thumbSourceId).then(url=>{
+        if(!url) return;
+        const thumbEl = document.getElementById(`mgmt-thumb-${id}`);
+        if(!thumbEl) return;
+        const img = document.createElement('img');
+        img.src = url;
+        thumbEl.querySelector('.mgmt-thumb-icon')?.remove();
+        thumbEl.appendChild(img);
+        if(it.type === 'video'){
+          const play = document.createElement('span');
+          play.className = 'play-overlay';
+          play.textContent = '▶';
+          thumbEl.appendChild(play);
+        }
+      });
+    }
+  }
+
+  list.querySelectorAll('.mgmt-checkbox').forEach(cb=>{
+    cb.onclick = () => {
+      const id = cb.dataset.id;
+      if(mgmtSelectedIds.has(id)) mgmtSelectedIds.delete(id); else mgmtSelectedIds.add(id);
+      cb.classList.toggle('checked');
+      cb.textContent = mgmtSelectedIds.has(id) ? '✓' : '';
+      const bar = document.getElementById('adminBulkBar');
+      document.getElementById('adminBulkCount').textContent = `${mgmtSelectedIds.size}টা নির্বাচিত`;
+      bar.classList.toggle('show', mgmtSelectedIds.size > 0);
+    };
+  });
+
+  list.querySelectorAll('.mgmt-del').forEach(b=>{
+    b.onclick = async () => {
+      const id = b.dataset.id;
+      const it = source[id];
+      if(!it) return;
+      const proceed = confirm(`"${it.name||'ফাইলটি'}" ডিলিট করবে? এটা আর ফেরত আনা যাবে না।`);
+      if(!proceed) return;
+      try{
+        await mgmtTargetDb().child(id).remove();
+        await logAction('delete', it.name, it.type, mgmtSection());
+        showToast('🗑️ ডিলিট হয়েছে');
+        renderMgmtList();
+        renderAdminStats();
+      }catch(err){
+        console.error(err);
+        showToast('❌ ডিলিট ব্যর্থ হয়েছে');
+      }
+    };
+  });
+}
+
+document.getElementById('adminBulkCancelBtn').onclick = () => {
+  mgmtSelectedIds.clear();
+  document.getElementById('adminBulkBar').classList.remove('show');
+  renderMgmtList();
+};
+
+document.getElementById('adminBulkDeleteBtn').onclick = async () => {
+  if(mgmtSelectedIds.size === 0) return;
+  const proceed = confirm(`${mgmtSelectedIds.size}টা ফাইল ডিলিট করবে? এটা আর ফেরত আনা যাবে না।`);
+  if(!proceed) return;
+
+  const source = mgmtSourceItems();
+  const targetDb = mgmtTargetDb();
+  const section = mgmtSection();
+
+  showToast('ডিলিট হচ্ছে...', 5000);
+  for(const id of mgmtSelectedIds){
+    const it = source[id];
+    if(!it) continue;
+    try{
+      await targetDb.child(id).remove();
+      await logAction('delete', it.name, it.type, section);
+    }catch(e){ console.error(e); }
+  }
+  showToast(`✅ ${mgmtSelectedIds.size}টা ফাইল ডিলিট হয়েছে`);
+  mgmtSelectedIds.clear();
+  document.getElementById('adminBulkBar').classList.remove('show');
+  renderMgmtList();
+  renderAdminStats();
+};
+
+// ---------- ADMIN: ACTIVITY LOG ----------
+async function renderActivityLog(){
+  const logList = document.getElementById('logList');
+  logList.innerHTML = '<div class="log-empty">লোড হচ্ছে...</div>';
+
+  try{
+    const snap = await logRef.limitToLast(50).once('value');
+    const val = snap.val() || {};
+    const entries = Object.values(val).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+
+    if(entries.length === 0){
+      logList.innerHTML = '<div class="log-empty">এখনো কোনো এক্টিভিটি নেই</div>';
+      return;
+    }
+
+    logList.innerHTML = '';
+    for(const e of entries){
+      const icon = e.action === 'upload' ? '⬆️' : '🗑️';
+      const actionText = e.action === 'upload' ? 'আপলোড হলো' : 'ডিলিট হলো';
+      const sectionTag = e.section === 'private' ? ' 🔒' : '';
+      const div = document.createElement('div');
+      div.className = 'log-item';
+      div.innerHTML = `
+        <span class="log-icon">${icon}</span>
+        <span class="log-text">${escapeHtml(e.name||'ফাইল')} — ${actionText}${sectionTag}</span>
+        <span class="log-time">${timeAgo(e.timestamp||0)}</span>
+      `;
+      logList.appendChild(div);
+    }
+  }catch(err){
+    logList.innerHTML = '<div class="log-empty">লগ লোড করা যায়নি</div>';
+  }
+}
+
+// ---------- TABS ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTab = btn.dataset.type;
+    render();
+  };
+});
+
+// ---------- TOAST ----------
+let toastTimer;
+function showToast(msg, ms=2600){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), ms);
+}
+
+// ---------- FIREBASE LISTEN ----------
+function startListening(){
+  db.on('value', snap => {
+    items = snap.val() || {};
+    render();
+    if(adminUnlocked && document.getElementById('adminPanel').classList.contains('show')){
+      renderAdminStats();
+      renderMgmtList();
+    }
+  });
+}
+
+function render(){
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('emptyState');
+
+  document.getElementById('photoCount').textContent = Object.values(items).filter(it=>it.type==='photo').length;
+  document.getElementById('videoCount').textContent = Object.values(items).filter(it=>it.type==='video').length;
+
+  grid.innerHTML = '';
+
+  const list = Object.entries(items)
+    .filter(([id,it]) => it.type === activeTab)
+    .filter(([id,it]) => !searchQuery || (it.name||'').toLowerCase().includes(searchQuery))
+    .sort((a,b) => (b[1].timestamp||0) - (a[1].timestamp||0));
+
+  if(list.length===0){
+    empty.style.display='block';
+    document.getElementById('emptyText').textContent = searchQuery
+      ? 'কিছু পাওয়া যায়নি'
+      : (activeTab==='photo' ? 'কোনো ছবি নেই এখনো' : 'কোনো ভিডিও নেই এখনো');
+    return;
+  }
+  empty.style.display='none';
+
+  list.forEach(([id, it], idx) => {
+    const card = document.createElement('div');
+    card.className='card';
+    card.innerHTML = `
+      <div class="card-thumb" id="thumb-${id}">
+        <span class="badge ${it.type}">${it.type==='photo'?'ছবি':'ভিডিও'}</span>
+        <span class="thumb-icon">${it.type==='photo'?'🖼️':'🎬'}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${escapeHtml(it.name||'ফাইল')}</div>
+        <div class="card-actions">
+          <button class="btn-preview" data-id="${id}" data-idx="${idx}">প্রিভিউ</button>
+          <button class="btn-download" data-id="${id}">ডাউনলোড</button>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+
+    if(it.type==='photo'){
+      resolveFileUrl(it.fileId).then(url=>{
+        if(!url) return;
+        const thumb = document.getElementById(`thumb-${id}`);
+        if(!thumb) return;
+        const img = document.createElement('img');
+        img.src = url;
+        thumb.querySelector('.thumb-icon')?.remove();
+        thumb.appendChild(img);
+      });
+    } else if(it.type==='video' && it.thumbFileId){
+      resolveFileUrl(it.thumbFileId).then(url=>{
+        if(!url) return;
+        const thumb = document.getElementById(`thumb-${id}`);
+        if(!thumb) return;
+        const img = document.createElement('img');
+        img.src = url;
+        thumb.querySelector('.thumb-icon')?.remove();
+        thumb.appendChild(img);
+        const play = document.createElement('span');
+        play.className = 'play-overlay';
+        play.textContent = '▶';
+        thumb.appendChild(play);
+      });
+    }
+  });
+
+  previewList = list; // keep in sync for fullscreen prev/next navigation
+
+  grid.querySelectorAll('.btn-preview').forEach(b=>{
+    b.onclick = () => openPreviewAt(parseInt(b.dataset.idx, 10));
+  });
+  grid.querySelectorAll('.btn-download').forEach(b=>{
+    b.onclick = () => downloadItem(items[b.dataset.id]);
+  });
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- TELEGRAM FILE URL ----------
+async function resolveFileUrl(fileId){
+  try{
+    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+    const d = await r.json();
+    if(!d.ok) return null;
+    return `https://api.telegram.org/file/bot${BOT_TOKEN}/${d.result.file_path}`;
+  }catch(e){ return null; }
+}
+
+// ---------- PREVIEW MODAL ----------
+const modal = document.getElementById('modal');
+const modalContent = document.getElementById('modalContent');
+const modalPrev = document.getElementById('modalPrev');
+const modalNext = document.getElementById('modalNext');
+const modalCounter = document.getElementById('modalCounter');
+document.getElementById('modalClose').onclick = closeModal;
+modal.addEventListener('click', e => { if(e.target===modal) closeModal(); });
+
+let previewList = [];   // [id, item][] currently shown in the grid — for prev/next navigation
+let previewIndex = 0;
+
+function closeModal(){
+  modal.classList.remove('show');
+  modalContent.innerHTML='';
+}
+
+function openPreviewAt(idx){
+  if(idx < 0 || idx >= previewList.length) return;
+  previewIndex = idx;
+  openPreview(previewList[idx][1]);
+}
+
+modalPrev.onclick = () => openPreviewAt(previewIndex - 1);
+modalNext.onclick = () => openPreviewAt(previewIndex + 1);
+
+// swipe left/right to move between items (fullscreen gallery-style)
+let touchStartX = 0;
+modalContent.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].clientX; }, {passive:true});
+modalContent.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if(Math.abs(dx) < 50) return; // ignore small taps/drags
+  if(dx < 0) openPreviewAt(previewIndex + 1); // swipe left -> next
+  else openPreviewAt(previewIndex - 1);       // swipe right -> prev
+}, {passive:true});
+
+async function openPreview(it){
+  modalContent.innerHTML = '<div class="spinner"></div>';
+  modal.classList.add('show');
+
+  const hasMultiple = previewList.length > 1;
+  modalPrev.classList.toggle('show', hasMultiple && previewIndex > 0);
+  modalNext.classList.toggle('show', hasMultiple && previewIndex < previewList.length - 1);
+  modalCounter.textContent = hasMultiple ? `${previewIndex + 1} / ${previewList.length}` : '';
+
+  const url = await resolveFileUrl(it.fileId);
+  if(!url){
+    modalContent.innerHTML = '<p style="color:#fff;padding:20px;text-align:center">লোড করা যায়নি — ফাইলটি হয়তো ২০MB এর বড় (Telegram লিমিট)</p>';
+    return;
+  }
+  if(it.type==='photo'){
+    modalContent.innerHTML = `<img src="${url}">`;
+  } else {
+    modalContent.innerHTML = `<video src="${url}" controls autoplay></video>`;
+  }
+}
+
+// ---------- DOWNLOAD ----------
+async function downloadItem(it){
+  showToast('লিংক তৈরি হচ্ছে...');
+  const url = await resolveFileUrl(it.fileId);
+  if(!url){
+    showToast('ডাউনলোড লিংক পাওয়া যায়নি (ফাইল ২০MB এর বড় হতে পারে)');
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = it.name || 'file';
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// ---------- UPLOAD (multi-file) ----------
+const fileInput = document.getElementById('fileInput');
+document.getElementById('fab').onclick = () => fileInput.click();
+
+async function sendToTelegram(file, method, fieldName){
+  return await new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append('chat_id', CHAT_ID);
+    formData.append(fieldName, file, file.name || 'upload');
+
+    const xhr = new XMLHttpRequest();
+    xhr.timeout = 120000; // 2 minutes per attempt
+    xhr.ontimeout = () => reject(new Error('টাইমআউট (২ মিনিটের মধ্যে রেসপন্স আসেনি)'));
+    xhr.onerror = () => reject(new Error('নেটওয়ার্ক এরর (কানেকশন ড্রপ হয়েছে)'));
+    xhr.onload = () => {
+      if(xhr.status < 200 || xhr.status >= 300){
+        reject(new Error(`HTTP ${xhr.status}: ${xhr.responseText.slice(0,120)}`));
+        return;
+      }
+      try{
+        const parsed = JSON.parse(xhr.responseText);
+        resolve(parsed);
+      }catch(err){
+        reject(new Error(`অপ্রত্যাশিত রেসপন্স (status ${xhr.status}): ${xhr.responseText.slice(0,120)}`));
+      }
+    };
+    xhr.open('POST', `https://api.telegram.org/bot${BOT_TOKEN}/${method}`);
+    xhr.send(formData);
+  });
+}
+
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function uploadOne(file){
+  const isVideo = file.type.startsWith('video');
+  // For video: try sendVideo first (Telegram auto-generates a thumbnail this way),
+  // fall back to sendDocument (preserves original quality, but no auto-thumbnail).
+  // For photo: sendDocument first (original quality), sendPhoto as fallback.
+  const attempts = isVideo
+    ? [ { method: 'sendVideo', field: 'video' }, { method: 'sendDocument', field: 'document' } ]
+    : [ { method: 'sendDocument', field: 'document' }, { method: 'sendPhoto', field: 'photo' } ];
+
+  let lastErr;
+  for(const attempt of attempts){
+    for(let tryNum = 0; tryNum < 2; tryNum++){
+      try{
+        const result = await sendToTelegram(file, attempt.method, attempt.field);
+        if(!result.ok) throw new Error(result.description || `${attempt.method} ব্যর্থ`);
+
+        const fileId =
+          result.result.document?.file_id ||
+          result.result.video?.file_id ||
+          (result.result.photo ? result.result.photo[result.result.photo.length-1].file_id : null);
+
+        if(!fileId) throw new Error('file_id পাওয়া যায়নি রেসপন্সে');
+
+        // capture auto-generated thumbnail if Telegram provided one (video/document thumb)
+        const thumbFileId =
+          result.result.video?.thumb?.file_id ||
+          result.result.document?.thumb?.file_id ||
+          null;
+
+        const targetDb = db;
+        const section = 'public';
+        const record = {
+          fileId,
+          type: isVideo ? 'video' : 'photo',
+          name: file.name,
+          size: file.size,
+          timestamp: Date.now()
+        };
+        if(thumbFileId) record.thumbFileId = thumbFileId;
+
+        await targetDb.push(record);
+        await logAction('upload', file.name, isVideo ? 'video' : 'photo', section);
+        return; // success — stop trying further methods
+      }catch(err){
+        lastErr = err;
+        await sleep(800); // brief pause before retry
+      }
+    }
+  }
+  throw lastErr;
+}
+
+fileInput.addEventListener('change', async () => {
+  const files = Array.from(fileInput.files);
+  fileInput.value = '';
+  if(!files.length) return;
+
+  const validFiles = files.filter(f => f.type.startsWith('image') || f.type.startsWith('video'));
+  if(!validFiles.length){
+    showToast('শুধু ছবি অথবা ভিডিও আপলোড করা যাবে');
+    return;
+  }
+
+  const bigFiles = validFiles.filter(f => f.size > MAX_TG_DOWNLOAD);
+  if(bigFiles.length){
+    const proceed = confirm(`${bigFiles.length}টা ফাইল ২০MB এর বড়। Telegram Bot API-তে ২০MB এর বড় ফাইল প্রিভিউ/ডাউনলোড করা যায় না। তাও কি আপলোড করবে?`);
+    if(!proceed) return;
+  }
+
+  let done = 0, failed = 0, lastError = '';
+  for(const file of validFiles){
+    showToast(`আপলোড হচ্ছে... ${done + failed + 1}/${validFiles.length}`, 8000);
+    try{
+      await uploadOne(file);
+      done++;
+    }catch(err){
+      console.error(err);
+      lastError = err.message || String(err);
+      failed++;
+    }
+  }
+
+  if(failed === 0){
+    showToast(`✅ ${done}টা ফাইল আপলোড সম্পন্ন হয়েছে`);
+  } else {
+    showToast(`✅ ${done}টা সফল, ❌ ${failed}টা ব্যর্থ — কারণ: ${lastError}`, 9000);
+  }
+});
+</script>
+</body>
+</html>
