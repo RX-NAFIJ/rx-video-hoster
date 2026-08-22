@@ -380,6 +380,58 @@
   }
   #adminBulkCancelBtn{background:var(--glass); color:var(--sub); border:1px solid var(--glass-brd) !important;}
   #adminBulkDeleteBtn{background:linear-gradient(135deg,var(--danger),#fca5a5); color:#2a0a0a;}
+
+  /* ---------- VISITOR / IP LOG ---------- */
+  #visitorList{display:flex; flex-direction:column; gap:8px;}
+  .visitor-row{cursor:pointer; transition:transform .1s;}
+  .visitor-row:active{transform:scale(0.98);}
+  .visitor-name-tag{color:var(--cyan); font-weight:700;}
+  #clearVisitorLogBtn{
+    padding:9px 15px; border-radius:10px; border:1px solid rgba(248,113,113,0.3);
+    background:rgba(248,113,113,0.12); color:#fca5a5; font-size:12.5px; font-weight:600;
+    cursor:pointer; font-family:inherit;
+  }
+
+  #visitorDetailModal{
+    display:none; position:fixed; inset:0; z-index:60; background:rgba(5,5,9,0.9);
+    backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:20px;
+  }
+  #visitorDetailModal.show{display:flex;}
+  .visitor-detail-card{
+    width:100%; max-width:400px; max-height:82vh; overflow-y:auto;
+    background:rgba(20,16,20,0.97); border:1px solid var(--glass-brd);
+    border-radius:22px; padding:22px 20px; animation:popIn .25s ease;
+  }
+  .visitor-detail-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; gap:10px;}
+  .visitor-detail-head h3{font-size:14.5px; font-weight:700; word-break:break-all;}
+  #visitorDetailCloseBtn{
+    width:34px; height:34px; flex-shrink:0; border-radius:50%; background:var(--glass);
+    border:1px solid var(--glass-brd); color:var(--text); font-size:15px; cursor:pointer;
+  }
+  .visitor-name-row{display:flex; gap:8px; margin-bottom:18px;}
+  #visitorNameInput{
+    flex:1; padding:11px 13px; border-radius:11px; border:1px solid var(--glass-brd);
+    background:rgba(255,255,255,0.04); color:var(--text); font-size:13px; outline:none; font-family:inherit;
+  }
+  #visitorNameSaveBtn{
+    padding:0 18px; border-radius:11px; border:none; font-weight:700; font-size:12.5px;
+    background:linear-gradient(135deg,var(--violet),var(--cyan)); color:#0a0a0a; cursor:pointer; font-family:inherit;
+  }
+  #visitorHistoryList{display:flex; flex-direction:column; gap:8px;}
+
+  /* ---------- ADMIN TOP FOLDER TABS ---------- */
+  .admin-tabs{display:flex; gap:8px; margin-bottom:22px;}
+  .admin-tab-btn{
+    flex:1; padding:13px 0; text-align:center; border-radius:999px; border:1px solid var(--glass-brd);
+    background:var(--glass); color:var(--sub); font-size:13px; font-weight:700; cursor:pointer;
+    font-family:inherit; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .admin-tab-btn.active{
+    background:linear-gradient(135deg,var(--violet),var(--cyan)); color:#0a0a0a; border-color:transparent;
+    box-shadow:0 6px 20px rgba(255,107,74,0.35);
+  }
+  #adminSectionFiles, #adminSectionVisitors{display:none;}
+  #adminSectionFiles.active, #adminSectionVisitors.active{display:block;}
 </style>
 </head>
 <body>
@@ -448,22 +500,42 @@
 
     <!-- unlocked content -->
     <div id="adminContent">
-      <div class="stats-grid">
-        <div class="stat-box"><div class="stat-num" id="statPhotos">0</div><div class="stat-label">ছবি</div></div>
-        <div class="stat-box"><div class="stat-num" id="statVideos">0</div><div class="stat-label">ভিডিও</div></div>
-        <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">মোট ফাইল</div></div>
-        <div class="stat-box"><div class="stat-num" id="statSize">0 MB</div><div class="stat-label">মোট সাইজ</div></div>
+
+      <div class="admin-tabs">
+        <button class="admin-tab-btn active" data-admin-tab="files">📁 ফাইল ও হিস্ট্রি</button>
+        <button class="admin-tab-btn" data-admin-tab="visitors">🌐 ভিজিটর লগ</button>
       </div>
 
-      <h4 class="log-title">ফাইল ম্যানেজমেন্ট (ডিলিট)</h4>
-      <div class="mgmt-tabs">
-        <button class="mgmt-tab active" data-type="photo">ছবি</button>
-        <button class="mgmt-tab" data-type="video">ভিডিও</button>
-      </div>
-      <div id="mgmtList"></div>
+      <div id="adminSectionFiles" class="active">
+        <div class="stats-grid">
+          <div class="stat-box"><div class="stat-num" id="statPhotos">0</div><div class="stat-label">ছবি</div></div>
+          <div class="stat-box"><div class="stat-num" id="statVideos">0</div><div class="stat-label">ভিডিও</div></div>
+          <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">মোট ফাইল</div></div>
+          <div class="stat-box"><div class="stat-num" id="statSize">0 MB</div><div class="stat-label">মোট সাইজ</div></div>
+        </div>
 
-      <h4 class="log-title" style="margin-top:24px;">আপলোড/ডিলিট হিস্ট্রি</h4>
-      <div id="logList"></div>
+        <h4 class="log-title">ফাইল ম্যানেজমেন্ট (ডিলিট)</h4>
+        <div class="mgmt-tabs">
+          <button class="mgmt-tab active" data-type="photo">ছবি</button>
+          <button class="mgmt-tab" data-type="video">ভিডিও</button>
+        </div>
+        <div id="mgmtList"></div>
+
+        <h4 class="log-title" style="margin-top:24px;">আপলোড/ডিলিট হিস্ট্রি</h4>
+        <div id="logList"></div>
+      </div>
+
+      <div id="adminSectionVisitors">
+        <div class="stats-grid" style="margin-bottom:12px;">
+          <div class="stat-box"><div class="stat-num" id="statUniqueIP">0</div><div class="stat-label">ইউনিক ভিজিটর (IP)</div></div>
+          <div class="stat-box"><div class="stat-num" id="statTodayVisits">0</div><div class="stat-label">আজকের এক্টিভিটি</div></div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+          <button id="clearVisitorLogBtn">🧹 লগ ক্লিয়ার করো</button>
+        </div>
+        <div id="visitorList"></div>
+      </div>
+
     </div>
   </div>
 
@@ -517,6 +589,22 @@
   </div>
 </div>
 
+<!-- VISITOR (IP) DETAIL MODAL -->
+<div id="visitorDetailModal">
+  <div class="visitor-detail-card">
+    <div class="visitor-detail-head">
+      <h3 id="visitorDetailIp"></h3>
+      <button id="visitorDetailCloseBtn">✕</button>
+    </div>
+    <div class="visitor-name-row">
+      <input type="text" id="visitorNameInput" placeholder="এই IP-র জন্য নাম দাও (যেমন: Nafij)">
+      <button id="visitorNameSaveBtn">সেভ</button>
+    </div>
+    <div class="log-title">এক্টিভিটি হিস্ট্রি</div>
+    <div id="visitorHistoryList"></div>
+  </div>
+</div>
+
 <script>
 // ---------- OBFUSCATED CONFIG ----------
 // Values below are XOR-ciphered (hex) so they don't sit as plain text in the page source.
@@ -552,6 +640,7 @@ const MAX_TG_DOWNLOAD = 20 * 1024 * 1024; // 20MB — Telegram Bot API getFile l
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database().ref('hoster_gallery');
 const logRef = firebase.database().ref('hoster_log');
+const visitorRef = firebase.database().ref('hoster_visitors');
 
 // ---------- STATE ----------
 let activeTab = 'photo';
@@ -560,6 +649,9 @@ let adminUnlocked = false;
 let searchQuery = '';
 let mgmtType = 'photo';         // which type the admin management list is showing
 let mgmtSelectedIds = new Set();
+let currentIp = null;           // this browser's detected public IP for this session
+let visitorsCache = {};         // ipKey -> { ip, name, firstSeen, lastSeen, totalVisits, history }
+let currentVisitorId = null;    // ipKey currently open in the detail modal
 
 // ---------- LOGIN ----------
 const loginScreen = document.getElementById('loginScreen');
@@ -574,6 +666,7 @@ function tryLogin(){
     galleryScreen.style.display='block';
     startListening();
     maybeShowWelcome();
+    fetchAndLogVisit();
   } else {
     loginErr.textContent = 'পাসওয়ার্ড ভুল হয়েছে';
     pwInput.value='';
@@ -627,6 +720,7 @@ if(sessionStorage.getItem('vault_auth')==='1'){
   galleryScreen.style.display='block';
   startListening();
   maybeShowWelcome();
+  fetchAndLogVisit();
 }
 
 // hidden "click to copy password" — looks like decorative icons, quietly copies on tap
@@ -669,13 +763,74 @@ function showAdminContent(){
   renderAdminStats();
   renderMgmtList();
   renderActivityLog();
+  renderVisitorLog();
 }
+
+// ---------- ADMIN TOP FOLDER TABS (ফাইল ও হিস্ট্রি / ভিজিটর লগ) ----------
+document.querySelectorAll('.admin-tab-btn').forEach(btn=>{
+  btn.onclick = () => {
+    document.querySelectorAll('.admin-tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const target = btn.dataset.adminTab;
+    document.getElementById('adminSectionFiles').classList.toggle('active', target === 'files');
+    document.getElementById('adminSectionVisitors').classList.toggle('active', target === 'visitors');
+    if(target === 'visitors') renderVisitorLog();
+  };
+});
 
 // ---------- ACTIVITY LOG HELPER ----------
 async function logAction(action, name, type, section){
   try{
     await logRef.push({ action, name, type, section, timestamp: Date.now() });
   }catch(e){ /* logging failure shouldn't block the main action */ }
+}
+
+// ---------- VISITOR / IP TRACKING ----------
+// Firebase keys can't contain '.' or ':' — sanitize IP (v4 dots / v6 colons) into a safe key.
+function ipToKey(ip){
+  return ip.replace(/[.:]/g, '_');
+}
+
+// Called once per page-load/login: detect this browser's public IP, then record the visit.
+async function fetchAndLogVisit(){
+  try{
+    const r = await fetch('https://api.ipify.org?format=json');
+    const d = await r.json();
+    if(!d.ip) return;
+    currentIp = d.ip;
+    await recordVisit(currentIp);
+  }catch(e){
+    console.error('IP লোকেশন সনাক্ত করা যায়নি', e);
+  }
+}
+
+// Creates or updates the visitor record for this IP, and adds a "প্রবেশ করলো" history entry.
+async function recordVisit(ip){
+  const key = ipToKey(ip);
+  const ref = visitorRef.child(key);
+  const now = Date.now();
+  try{
+    const snap = await ref.once('value');
+    const existing = snap.val();
+    if(!existing){
+      await ref.update({ ip, name:'', firstSeen: now, lastSeen: now, totalVisits: 1 });
+    } else {
+      await ref.update({ ip, lastSeen: now, totalVisits: (existing.totalVisits||0) + 1 });
+    }
+    await ref.child('history').push({ action:'ওয়েবসাইটে ঢুকলো', detail:'', timestamp: now });
+  }catch(e){ console.error(e); }
+}
+
+// Call this anywhere in the app to record what the current visitor is doing
+// (tab switch, preview, download, upload, etc). Cheap fire-and-forget.
+async function logVisitorAction(action, detail=''){
+  if(!currentIp) return;
+  const key = ipToKey(currentIp);
+  const now = Date.now();
+  try{
+    await visitorRef.child(key).update({ lastSeen: now });
+    await visitorRef.child(key).child('history').push({ action, detail, timestamp: now });
+  }catch(e){ /* ignore — never block the user's actual action */ }
 }
 
 // ---------- SEARCH ----------
@@ -688,6 +843,7 @@ document.getElementById('searchInput').addEventListener('input', e => {
 const adminPanel = document.getElementById('adminPanel');
 document.getElementById('adminBtn').onclick = () => {
   adminPanel.classList.add('show');
+  logVisitorAction('অ্যাডমিন প্যানেল খুললো');
   if(adminUnlocked){
     showAdminContent();
   } else {
@@ -897,12 +1053,114 @@ async function renderActivityLog(){
   }
 }
 
+// ---------- ADMIN: VISITOR / IP LOG ----------
+function renderVisitorLog(){
+  const listEl = document.getElementById('visitorList');
+  const entries = Object.entries(visitorsCache);
+
+  document.getElementById('statUniqueIP').textContent = entries.length;
+
+  const todayStart = new Date();
+  todayStart.setHours(0,0,0,0);
+  const todayStartMs = todayStart.getTime();
+  let todayCount = 0;
+  entries.forEach(([id, v]) => {
+    if(v.history){
+      Object.values(v.history).forEach(h => {
+        if((h.timestamp||0) >= todayStartMs) todayCount++;
+      });
+    }
+  });
+  document.getElementById('statTodayVisits').textContent = todayCount;
+
+  if(entries.length === 0){
+    listEl.innerHTML = '<div class="log-empty">এখনো কোনো ভিজিটর ধরা পড়েনি</div>';
+    return;
+  }
+
+  const sorted = entries.sort((a,b) => (b[1].lastSeen||0) - (a[1].lastSeen||0));
+  listEl.innerHTML = '';
+  for(const [id, v] of sorted){
+    const histCount = v.history ? Object.keys(v.history).length : 0;
+    const row = document.createElement('div');
+    row.className = 'log-item visitor-row';
+    row.innerHTML = `
+      <span class="log-icon">🌐</span>
+      <span class="log-text">${escapeHtml(v.ip||'')}${v.name ? ` / <span class="visitor-name-tag">${escapeHtml(v.name)}</span>` : ''} — ${v.totalVisits||0} বার ঢুকেছে, ${histCount} টা এক্টিভিটি</span>
+      <span class="log-time">${timeAgo(v.lastSeen||0)}</span>
+    `;
+    row.onclick = () => openVisitorDetail(id);
+    listEl.appendChild(row);
+  }
+}
+
+function openVisitorDetail(id){
+  const v = visitorsCache[id];
+  if(!v) return;
+  currentVisitorId = id;
+
+  document.getElementById('visitorDetailIp').innerHTML = v.name
+    ? `${escapeHtml(v.ip)} / <span class="visitor-name-tag">${escapeHtml(v.name)}</span>`
+    : escapeHtml(v.ip||'');
+  document.getElementById('visitorNameInput').value = v.name || '';
+
+  const histList = document.getElementById('visitorHistoryList');
+  const hist = Object.values(v.history || {}).sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+  if(hist.length === 0){
+    histList.innerHTML = '<div class="log-empty">কোনো এক্টিভিটি রেকর্ড নেই</div>';
+  } else {
+    histList.innerHTML = hist.map(h => `
+      <div class="log-item">
+        <span class="log-icon">📍</span>
+        <span class="log-text">${escapeHtml(h.action||'')}${h.detail ? ' — ' + escapeHtml(h.detail) : ''}</span>
+        <span class="log-time">${new Date(h.timestamp||0).toLocaleString('bn-BD')}</span>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('visitorDetailModal').classList.add('show');
+}
+
+document.getElementById('visitorDetailCloseBtn').onclick = () => {
+  document.getElementById('visitorDetailModal').classList.remove('show');
+  currentVisitorId = null;
+};
+
+document.getElementById('visitorNameSaveBtn').onclick = async () => {
+  if(!currentVisitorId) return;
+  const name = document.getElementById('visitorNameInput').value.trim();
+  try{
+    await visitorRef.child(currentVisitorId).update({ name });
+    showToast('✅ নাম সেভ হয়েছে');
+    const v = visitorsCache[currentVisitorId] || {};
+    document.getElementById('visitorDetailIp').innerHTML = name
+      ? `${escapeHtml(v.ip||'')} / <span class="visitor-name-tag">${escapeHtml(name)}</span>`
+      : escapeHtml(v.ip||'');
+  }catch(e){
+    console.error(e);
+    showToast('❌ নাম সেভ ব্যর্থ হয়েছে');
+  }
+};
+
+document.getElementById('clearVisitorLogBtn').onclick = async () => {
+  const proceed = await customConfirm('সমস্ত ভিজিটর/IP লগ মুছে ফেলবে? সব IP, নাম আর এক্টিভিটি হিস্ট্রি একসাথে ডিলিট হয়ে যাবে — ফেরত আনা যাবে না।', {okText:'লগ ক্লিয়ার করো', icon:'🧹'});
+  if(!proceed) return;
+  try{
+    await visitorRef.remove();
+    showToast('✅ ভিজিটর লগ ক্লিয়ার হয়েছে');
+  }catch(e){
+    console.error(e);
+    showToast('❌ লগ ক্লিয়ার করা যায়নি');
+  }
+};
+
 // ---------- TABS ----------
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.onclick = () => {
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     activeTab = btn.dataset.type;
+    logVisitorAction('ট্যাব পরিবর্তন করলো', activeTab==='photo' ? 'ছবি ট্যাবে গেলো' : 'ভিডিও ট্যাবে গেলো');
     render();
   };
 });
@@ -925,6 +1183,13 @@ function startListening(){
     if(adminUnlocked && document.getElementById('adminPanel').classList.contains('show')){
       renderAdminStats();
       renderMgmtList();
+    }
+  });
+
+  visitorRef.on('value', snap => {
+    visitorsCache = snap.val() || {};
+    if(adminUnlocked && document.getElementById('adminPanel').classList.contains('show')){
+      renderVisitorLog();
     }
   });
 }
@@ -1060,6 +1325,7 @@ modalContent.addEventListener('touchend', e => {
 async function openPreview(it){
   modalContent.innerHTML = '<div class="spinner"></div>';
   modal.classList.add('show');
+  logVisitorAction('প্রিভিউ দেখলো', it.name || (it.type==='photo' ? 'ছবি' : 'ভিডিও'));
 
   const hasMultiple = previewList.length > 1;
   modalPrev.classList.toggle('show', hasMultiple && previewIndex > 0);
@@ -1081,6 +1347,7 @@ async function openPreview(it){
 // ---------- DOWNLOAD ----------
 async function downloadItem(it){
   showToast('লিংক তৈরি হচ্ছে...');
+  logVisitorAction('ডাউনলোড করলো', it.name || (it.type==='photo' ? 'ছবি' : 'ভিডিও'));
   const url = await resolveFileUrl(it.fileId);
   if(!url){
     showToast('ডাউনলোড লিংক পাওয়া যায়নি (ফাইল ২০MB এর বড় হতে পারে)');
@@ -1170,6 +1437,7 @@ async function uploadOne(file){
 
         await targetDb.push(record);
         await logAction('upload', file.name, isVideo ? 'video' : 'photo', section);
+        logVisitorAction('আপলোড করলো', file.name || (isVideo ? 'ভিডিও' : 'ছবি'));
         return; // success — stop trying further methods
       }catch(err){
         lastErr = err;
