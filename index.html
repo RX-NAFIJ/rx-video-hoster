@@ -84,6 +84,13 @@
   }
   header h2{font-family:'Baloo Da 2'; font-size:19px; font-weight:600; user-select:none;}
   header h2 span{color:var(--cyan);}
+  #headerTitleWrap{display:flex; align-items:center; gap:8px; min-width:0;}
+  #headerTitleWrap #headerTitle{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #backToFoldersBtn{
+    display:none; width:34px; height:34px; flex-shrink:0; border-radius:50%; background:var(--glass);
+    border:1px solid var(--glass-brd); color:var(--text); font-size:18px; cursor:pointer; font-family:inherit;
+  }
+  #backToFoldersBtn.show{display:flex; align-items:center; justify-content:center;}
   #logoutBtn{
     background:var(--glass); border:1px solid var(--glass-brd); color:var(--sub);
     padding:8px 14px; border-radius:12px; font-size:13px; cursor:pointer; font-family:inherit;
@@ -92,6 +99,60 @@
     background:var(--glass); border:1px solid var(--glass-brd); color:var(--cyan);
     width:36px; height:36px; border-radius:12px; font-size:14px; cursor:pointer; font-family:inherit;
   }
+
+  /* ---------- FOLDER LIST SCREEN ---------- */
+  #folderGalleryScreen{display:none;}
+  .folder-intro{padding:0 20px 16px; color:var(--sub); font-size:13px; text-align:center;}
+  #createFolderBtn{
+    display:block; width:calc(100% - 40px); margin:0 20px 20px; padding:14px 0; border:none;
+    border-radius:999px; font-size:14.5px; font-weight:700; cursor:pointer; font-family:inherit;
+    background:linear-gradient(135deg,var(--violet),var(--cyan)); color:#1a0a05;
+    box-shadow:0 10px 28px rgba(255,107,74,0.3);
+  }
+  #createFolderBtn:active{transform:scale(0.98);}
+  #folderGrid{
+    padding:0 20px 20px; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:14px;
+  }
+  .folder-card{
+    background:var(--glass); border:1px solid var(--glass-brd); border-radius:22px; padding:20px 14px;
+    text-align:center; cursor:pointer; transition:transform .15s;
+  }
+  .folder-card:active{transform:scale(0.96);}
+  .folder-card .f-icon{font-size:36px; margin-bottom:8px;}
+  .folder-card .f-name{font-size:13.5px; font-weight:700; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .folder-card .f-meta{font-size:11px; color:var(--sub);}
+  #folderEmptyState{display:none; text-align:center; padding:40px 20px; color:var(--sub);}
+  #folderEmptyState .e-icon{font-size:44px; margin-bottom:14px; opacity:0.5;}
+
+  /* ---------- CREATE FOLDER POPUP ---------- */
+  #folderNameModal{
+    display:none; position:fixed; inset:0; z-index:52; background:rgba(5,5,9,0.85);
+    backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:24px;
+  }
+  #folderNameModal.show{display:flex;}
+  .folder-modal-card{
+    width:100%; max-width:340px; background:rgba(20,16,20,0.97); border:1px solid var(--glass-brd);
+    border-radius:24px; padding:28px 24px; text-align:center; animation:popIn .25s ease;
+  }
+  .folder-modal-icon{
+    width:52px; height:52px; margin:0 auto 12px; border-radius:16px;
+    background:linear-gradient(135deg,var(--violet),var(--cyan)); display:flex; align-items:center; justify-content:center;
+    font-size:22px;
+  }
+  .folder-modal-card h3{font-family:'Baloo Da 2'; font-size:16px; font-weight:700; margin-bottom:6px;}
+  .folder-modal-card p{color:var(--sub); font-size:12.5px; margin-bottom:16px;}
+  #folderNameInput{
+    width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--glass-brd);
+    background:rgba(255,255,255,0.04); color:var(--text); font-size:14px; outline:none; margin-bottom:16px;
+    font-family:inherit; text-align:center;
+  }
+  .folder-modal-actions{display:flex; gap:10px;}
+  .folder-modal-actions button{
+    flex:1; padding:12px 0; border-radius:999px; border:none; font-size:13.5px; font-weight:700; cursor:pointer;
+    font-family:inherit;
+  }
+  #folderNameCancelBtn{background:var(--glass); color:var(--sub); border:1px solid var(--glass-brd) !important;}
+  #folderNameCreateBtn{background:linear-gradient(135deg,var(--violet),var(--cyan)); color:#1a0a05;}
 
   .tabs{display:flex; gap:8px; padding:6px 20px 18px;}
   .tab-btn{
@@ -314,6 +375,16 @@
     background:linear-gradient(135deg,var(--violet),var(--cyan)); color:#0a0a0a; cursor:pointer; font-family:inherit;
   }
   #adminErr{color:var(--danger); font-size:12.5px; margin-top:10px; min-height:14px;}
+  #adminFolderSelect{
+    width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--glass-brd);
+    background:rgba(255,255,255,0.04); color:var(--text); font-size:13.5px; outline:none;
+    font-family:inherit;
+  }
+  #deleteFolderBtn{
+    padding:8px 14px; border-radius:10px; border:1px solid rgba(248,113,113,0.3);
+    background:rgba(248,113,113,0.12); color:#fca5a5; font-size:12px; font-weight:600;
+    cursor:pointer; font-family:inherit;
+  }
 
   .stats-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px;}
   .stat-box{
@@ -457,29 +528,62 @@
 <!-- GALLERY -->
 <div id="galleryScreen">
   <header>
-    <h2>RX <span>Hoster</span></h2>
+    <div id="headerTitleWrap">
+      <button id="backToFoldersBtn" title="ফোল্ডারসমূহ">‹</button>
+      <h2 id="headerTitle">RX <span>Hoster</span></h2>
+    </div>
     <div style="display:flex; gap:8px;">
       <button id="adminBtn" title="অ্যাডমিন প্যানেল">📊</button>
       <button id="logoutBtn">লগআউট</button>
     </div>
   </header>
 
-  <div class="tabs">
-    <button class="tab-btn active" data-type="photo">📷 ছবি <span class="tab-count" id="photoCount">0</span></button>
-    <button class="tab-btn" data-type="video">🎬 ভিডিও <span class="tab-count" id="videoCount">0</span></button>
+  <!-- FOLDER LIST SCREEN -->
+  <div id="folderListScreen">
+    <div class="folder-intro">
+      <p>নিজের একটা ফোল্ডার বানাও, তারপর সেখানে তোমার ছবি/ভিডিও আপলোড দাও 📁</p>
+    </div>
+    <button id="createFolderBtn">➕ নতুন ফোল্ডার বানাও</button>
+    <div id="folderGrid"></div>
+    <div id="folderEmptyState">
+      <div class="e-icon">📂</div>
+      <div>এখনো কোনো ফোল্ডার নেই — প্রথম ফোল্ডারটা তুমিই বানাও!</div>
+    </div>
   </div>
 
-  <div class="search-row">
-    <input type="text" id="searchInput" placeholder="🔍 নাম দিয়ে খোঁজো...">
-  </div>
+  <!-- FOLDER GALLERY SCREEN -->
+  <div id="folderGalleryScreen">
+    <div class="tabs">
+      <button class="tab-btn active" data-type="photo">📷 ছবি <span class="tab-count" id="photoCount">0</span></button>
+      <button class="tab-btn" data-type="video">🎬 ভিডিও <span class="tab-count" id="videoCount">0</span></button>
+    </div>
 
-  <div id="grid"></div>
-  <div id="emptyState">
-    <div class="e-icon">🗂️</div>
-    <div id="emptyText">এখনো কিছু আপলোড হয়নি — নিচের + বাটনে চাপো</div>
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="🔍 নাম দিয়ে খোঁজো...">
+    </div>
+
+    <div id="grid"></div>
+    <div id="emptyState">
+      <div class="e-icon">🗂️</div>
+      <div id="emptyText">এখনো কিছু আপলোড হয়নি — নিচের + বাটনে চাপো</div>
+    </div>
   </div>
 
   <div class="dev-credit gallery-credit">Developer RX Nafij</div>
+</div>
+
+<!-- CREATE FOLDER POPUP -->
+<div id="folderNameModal">
+  <div class="folder-modal-card">
+    <div class="folder-modal-icon">📁</div>
+    <h3>নতুন ফোল্ডার</h3>
+    <p>ফোল্ডারের নাম দাও (যেমন — তোমার নাম বা নিকনেম)</p>
+    <input type="text" id="folderNameInput" placeholder="ফোল্ডারের নাম" autocomplete="off" maxlength="40">
+    <div class="folder-modal-actions">
+      <button id="folderNameCancelBtn">বাতিল</button>
+      <button id="folderNameCreateBtn">বানাও</button>
+    </div>
+  </div>
 </div>
 
 <div id="adminPanel">
@@ -507,6 +611,12 @@
       </div>
 
       <div id="adminSectionFiles" class="active">
+        <h4 class="log-title">কোন ফোল্ডার ম্যানেজ করবে</h4>
+        <select id="adminFolderSelect"></select>
+        <div style="display:flex; justify-content:flex-end; margin:10px 0 4px;">
+          <button id="deleteFolderBtn">🗑️ পুরো ফোল্ডার ডিলিট করো</button>
+        </div>
+
         <div class="stats-grid">
           <div class="stat-box"><div class="stat-num" id="statPhotos">0</div><div class="stat-label">ছবি</div></div>
           <div class="stat-box"><div class="stat-num" id="statVideos">0</div><div class="stat-label">ভিডিও</div></div>
@@ -549,7 +659,7 @@
 </div>
 
 <input type="file" id="fileInput" accept="image/*,video/*" multiple>
-<button id="fab">+</button>
+<button id="fab" class="hidden">+</button>
 <div id="toast"></div>
 
 <div id="modal">
@@ -638,13 +748,20 @@ const firebaseConfig = {
 const MAX_TG_DOWNLOAD = 20 * 1024 * 1024; // 20MB — Telegram Bot API getFile limit
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database().ref('hoster_gallery');
+const db = firebase.database().ref('hoster_gallery');       // base — actual items live under db.child(folderId)
+const foldersRef = firebase.database().ref('hoster_folders');
 const logRef = firebase.database().ref('hoster_log');
 const visitorRef = firebase.database().ref('hoster_visitors');
 
+function galleryRef(){
+  return db.child(currentFolderId);
+}
+
 // ---------- STATE ----------
 let activeTab = 'photo';
-let items = {};        // id -> item
+let items = {};        // id -> item, scoped to the currently open folder
+let folders = {};      // folderId -> { name, createdAt, itemCount }
+let currentFolderId = null;
 let adminUnlocked = false;
 let searchQuery = '';
 let mgmtType = 'photo';         // which type the admin management list is showing
@@ -652,6 +769,93 @@ let mgmtSelectedIds = new Set();
 let currentIp = null;           // this browser's detected public IP for this session
 let visitorsCache = {};         // ipKey -> { ip, name, firstSeen, lastSeen, totalVisits, history }
 let currentVisitorId = null;    // ipKey currently open in the detail modal
+let adminSelectedFolderId = null;
+let adminFolderItems = {};
+let adminFolderListenerCb = null;
+
+// ---------- FOLDERS ----------
+const folderListScreen = document.getElementById('folderListScreen');
+const folderGalleryScreen = document.getElementById('folderGalleryScreen');
+const headerTitle = document.getElementById('headerTitle');
+const backToFoldersBtn = document.getElementById('backToFoldersBtn');
+
+function showFolderListScreen(){
+  if(currentFolderId){ db.child(currentFolderId).off(); }
+  currentFolderId = null;
+  items = {};
+  folderListScreen.style.display = 'block';
+  folderGalleryScreen.style.display = 'none';
+  backToFoldersBtn.classList.remove('show');
+  headerTitle.innerHTML = 'RX <span>Hoster</span>';
+  document.getElementById('fab').classList.add('hidden');
+}
+
+function openFolder(folderId){
+  if(currentFolderId){ db.child(currentFolderId).off(); }
+  currentFolderId = folderId;
+  folderListScreen.style.display = 'none';
+  folderGalleryScreen.style.display = 'block';
+  backToFoldersBtn.classList.add('show');
+  const f = folders[folderId];
+  headerTitle.textContent = f ? f.name : 'ফোল্ডার';
+  document.getElementById('fab').classList.remove('hidden');
+  db.child(folderId).on('value', snap => {
+    items = snap.val() || {};
+    render();
+  });
+  logVisitorAction('ফোল্ডারে ঢুকলো', f?.name || '');
+}
+
+backToFoldersBtn.onclick = showFolderListScreen;
+
+function renderFolderList(){
+  const grid = document.getElementById('folderGrid');
+  const empty = document.getElementById('folderEmptyState');
+  const entries = Object.entries(folders).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+  if(entries.length === 0){
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = '';
+  for(const [id, f] of entries){
+    const card = document.createElement('div');
+    card.className = 'folder-card';
+    card.innerHTML = `
+      <div class="f-icon">📁</div>
+      <div class="f-name">${escapeHtml(f.name||'ফোল্ডার')}</div>
+      <div class="f-meta">${f.itemCount||0} টা ফাইল</div>
+    `;
+    card.onclick = () => openFolder(id);
+    grid.appendChild(card);
+  }
+}
+
+document.getElementById('createFolderBtn').onclick = () => {
+  document.getElementById('folderNameInput').value = '';
+  document.getElementById('folderNameModal').classList.add('show');
+  document.getElementById('folderNameInput').focus();
+};
+document.getElementById('folderNameCancelBtn').onclick = () => {
+  document.getElementById('folderNameModal').classList.remove('show');
+};
+document.getElementById('folderNameCreateBtn').onclick = async () => {
+  const name = document.getElementById('folderNameInput').value.trim();
+  if(!name){ showToast('ফোল্ডারের নাম দাও'); return; }
+  try{
+    const ref = await foldersRef.push({ name, createdAt: Date.now(), itemCount: 0 });
+    document.getElementById('folderNameModal').classList.remove('show');
+    showToast('✅ ফোল্ডার তৈরি হয়েছে');
+    openFolder(ref.key);
+  }catch(e){
+    console.error(e);
+    showToast('❌ ফোল্ডার তৈরি ব্যর্থ হয়েছে');
+  }
+};
+document.getElementById('folderNameInput').addEventListener('keydown', e => {
+  if(e.key==='Enter') document.getElementById('folderNameCreateBtn').click();
+});
 
 // ---------- LOGIN ----------
 const loginScreen = document.getElementById('loginScreen');
@@ -760,11 +964,66 @@ adminPwInput.addEventListener('keydown', e => { if(e.key==='Enter') tryAdminUnlo
 function showAdminContent(){
   adminLock.style.display = 'none';
   adminContent.style.display = 'block';
-  renderAdminStats();
-  renderMgmtList();
+  renderAdminFolderOptions();
   renderActivityLog();
   renderVisitorLog();
 }
+
+// ---------- ADMIN: FOLDER SELECTOR ----------
+function attachAdminFolderListener(folderId){
+  if(adminSelectedFolderId){ db.child(adminSelectedFolderId).off('value', adminFolderListenerCb); }
+  adminSelectedFolderId = folderId || null;
+  if(!adminSelectedFolderId){
+    adminFolderItems = {};
+    renderAdminStats();
+    renderMgmtList();
+    return;
+  }
+  adminFolderListenerCb = snap => {
+    adminFolderItems = snap.val() || {};
+    renderAdminStats();
+    renderMgmtList();
+  };
+  db.child(adminSelectedFolderId).on('value', adminFolderListenerCb);
+}
+
+function renderAdminFolderOptions(){
+  const sel = document.getElementById('adminFolderSelect');
+  if(!sel) return;
+  const entries = Object.entries(folders).sort((a,b)=>(a[1].name||'').localeCompare(b[1].name||''));
+  sel.innerHTML = '<option value="">— ফোল্ডার বাছাই করো —</option>' +
+    entries.map(([id,f]) => `<option value="${id}">${escapeHtml(f.name||'ফোল্ডার')} (${f.itemCount||0})</option>`).join('');
+
+  const stillValid = adminSelectedFolderId && folders[adminSelectedFolderId];
+  const toSelect = stillValid ? adminSelectedFolderId : (currentFolderId && folders[currentFolderId] ? currentFolderId : (entries[0] ? entries[0][0] : ''));
+  sel.value = toSelect || '';
+  if(toSelect !== adminSelectedFolderId){
+    attachAdminFolderListener(toSelect || null);
+  }
+}
+document.getElementById('adminFolderSelect').addEventListener('change', e => {
+  attachAdminFolderListener(e.target.value || null);
+});
+
+document.getElementById('deleteFolderBtn').onclick = async () => {
+  if(!adminSelectedFolderId){ showToast('আগে একটা ফোল্ডার বাছাই করো'); return; }
+  const f = folders[adminSelectedFolderId];
+  const proceed = await customConfirm(`"${f?.name||'এই ফোল্ডার'}" পুরোপুরি ডিলিট করবে? এর ভিতরের সব ছবি/ভিডিও এন্ট্রিও একসাথে মুছে যাবে — ফেরত আনা যাবে না।`, {okText:'ফোল্ডার ডিলিট করো', icon:'🗑️'});
+  if(!proceed) return;
+  try{
+    const deletedId = adminSelectedFolderId;
+    await db.child(deletedId).remove();
+    await foldersRef.child(deletedId).remove();
+    await logAction('delete', f?.name || 'ফোল্ডার', 'folder', 'public');
+    showToast('✅ ফোল্ডার ডিলিট হয়েছে');
+    if(currentFolderId === deletedId) showFolderListScreen();
+    attachAdminFolderListener(null);
+    renderAdminFolderOptions();
+  }catch(e){
+    console.error(e);
+    showToast('❌ ফোল্ডার ডিলিট ব্যর্থ হয়েছে');
+  }
+};
 
 // ---------- ADMIN TOP FOLDER TABS (ফাইল ও হিস্ট্রি / ভিজিটর লগ) ----------
 document.querySelectorAll('.admin-tab-btn').forEach(btn=>{
@@ -871,7 +1130,7 @@ function timeAgo(ts){
 }
 
 function renderAdminStats(){
-  const allPublic = Object.values(items);
+  const allPublic = Object.values(adminFolderItems);
   const photos = allPublic.filter(it=>it.type==='photo').length;
   const videos = allPublic.filter(it=>it.type==='video').length;
   const totalSize = allPublic.reduce((sum,it)=>sum+(it.size||0), 0);
@@ -895,10 +1154,10 @@ document.querySelectorAll('.mgmt-tab').forEach(btn=>{
 });
 
 function mgmtSourceItems(){
-  return items;
+  return adminFolderItems;
 }
 function mgmtTargetDb(){
-  return db;
+  return db.child(adminSelectedFolderId);
 }
 function mgmtSection(){
   return 'public';
@@ -976,6 +1235,7 @@ function renderMgmtList(){
       if(!proceed) return;
       try{
         await mgmtTargetDb().child(id).remove();
+        await foldersRef.child(adminSelectedFolderId).child('itemCount').transaction(cur => Math.max((cur||1)-1, 0));
         await logAction('delete', it.name, it.type, mgmtSection());
         showToast('🗑️ ডিলিট হয়েছে');
         renderMgmtList();
@@ -1002,6 +1262,7 @@ document.getElementById('adminBulkDeleteBtn').onclick = async () => {
   const source = mgmtSourceItems();
   const targetDb = mgmtTargetDb();
   const section = mgmtSection();
+  const folderId = adminSelectedFolderId;
 
   showToast('ডিলিট হচ্ছে...', 5000);
   for(const id of mgmtSelectedIds){
@@ -1009,6 +1270,7 @@ document.getElementById('adminBulkDeleteBtn').onclick = async () => {
     if(!it) continue;
     try{
       await targetDb.child(id).remove();
+      await foldersRef.child(folderId).child('itemCount').transaction(cur => Math.max((cur||1)-1, 0));
       await logAction('delete', it.name, it.type, section);
     }catch(e){ console.error(e); }
   }
@@ -1177,13 +1439,10 @@ function showToast(msg, ms=2600){
 
 // ---------- FIREBASE LISTEN ----------
 function startListening(){
-  db.on('value', snap => {
-    items = snap.val() || {};
-    render();
-    if(adminUnlocked && document.getElementById('adminPanel').classList.contains('show')){
-      renderAdminStats();
-      renderMgmtList();
-    }
+  foldersRef.on('value', snap => {
+    folders = snap.val() || {};
+    renderFolderList();
+    renderAdminFolderOptions();
   });
 
   visitorRef.on('value', snap => {
@@ -1192,6 +1451,8 @@ function startListening(){
       renderVisitorLog();
     }
   });
+
+  showFolderListScreen();
 }
 
 function render(){
@@ -1424,7 +1685,9 @@ async function uploadOne(file){
           result.result.document?.thumb?.file_id ||
           null;
 
-        const targetDb = db;
+        if(!currentFolderId) throw new Error('কোনো ফোল্ডার খোলা নেই');
+
+        const targetDb = galleryRef();
         const section = 'public';
         const record = {
           fileId,
@@ -1436,6 +1699,7 @@ async function uploadOne(file){
         if(thumbFileId) record.thumbFileId = thumbFileId;
 
         await targetDb.push(record);
+        await foldersRef.child(currentFolderId).child('itemCount').transaction(cur => (cur||0) + 1);
         await logAction('upload', file.name, isVideo ? 'video' : 'photo', section);
         logVisitorAction('আপলোড করলো', file.name || (isVideo ? 'ভিডিও' : 'ছবি'));
         return; // success — stop trying further methods
@@ -1452,6 +1716,7 @@ fileInput.addEventListener('change', async () => {
   const files = Array.from(fileInput.files);
   fileInput.value = '';
   if(!files.length) return;
+  if(!currentFolderId){ showToast('আগে একটা ফোল্ডার খোলো'); return; }
 
   const validFiles = files.filter(f => f.type.startsWith('image') || f.type.startsWith('video'));
   if(!validFiles.length){
