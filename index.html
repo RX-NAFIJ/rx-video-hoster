@@ -1649,53 +1649,14 @@ async function openPreview(it){
   }
 }
 
-// ---------- DOWNLOAD (আসল ফরম্যাট/এক্সটেনশনসহ) ----------
-async function downloadItem(it){
-  showToast('ডাউনলোড হচ্ছে...');
+// ---------- DOWNLOAD (নিজের সার্ভার প্রক্সি দিয়ে — সবসময় সঠিক নাম/এক্সটেনশনসহ) ----------
+function downloadItem(it){
   logVisitorAction('ডাউনলোড করলো', it.name || (it.type==='photo' ? 'ছবি' : 'ভিডিও'));
-
-  const info = await getTelegramFileInfo(it.fileId);
-  if(!info || info.error){
-    const reason = info?.error || 'অজানা কারণ';
-    showToast(`❌ ডাউনলোড লিংক পাওয়া যায়নি (${reason})`, 5000);
-    return;
-  }
-
-  // Telegram যে আসল ফাইল দিয়েছে তার প্রকৃত এক্সটেনশন বের করা (jpg/png/mp4 ইত্যাদি)
-  const realExt = (info.path.split('.').pop() || '').toLowerCase();
-  const baseName = (it.name || 'file').replace(/\.[^/.]+$/, ''); // পুরনো এক্সটেনশন থাকলে ফেলে দাও
-  const finalName = realExt ? `${baseName}.${realExt}` : baseName;
-
-  // মোবাইল নেটওয়ার্কে মাঝেমধ্যে blob fetch ক্ষণস্থায়ীভাবে ফেইল করে —
-  // সাথে সাথে raw-লিংক fallback-এ (যেটা আসল নাম/এক্সটেনশন হারিয়ে ফেলে) না গিয়ে
-  // আগে কয়েকবার রিট্রাই করে দেখা হচ্ছে
-  const maxAttempts = 3;
-  let lastErr = null;
-  for(let attempt = 1; attempt <= maxAttempts; attempt++){
-    try{
-      const res = await fetch(info.url);
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = finalName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
-      showToast('✅ ডাউনলোড হয়েছে');
-      return;
-    }catch(e){
-      lastErr = e;
-      console.error(`Blob download attempt ${attempt} failed:`, e);
-      if(attempt < maxAttempts) await sleep(700 * attempt);
-    }
-  }
-
-  // সব রিট্রাই ব্যর্থ হলে — সরাসরি লিংক নতুন ট্যাবে খুলে দাও (নাম ম্যানুয়ালি ঠিক করতে হবে)
-  showToast(`⚠️ সরাসরি ডাউনলোড ব্যর্থ (${lastErr?.message||'কারণ অজানা'}) — নতুন ট্যাবে খোলা হচ্ছে, Save As দিয়ে "${finalName}" নামে সেভ করো`, 6000);
-  window.open(info.url, '_blank');
+  showToast('ডাউনলোড হচ্ছে...');
+  const url = `/api/download?fileId=${encodeURIComponent(it.fileId)}&name=${encodeURIComponent(it.name || 'file')}`;
+  // নিজের ডোমেইন থেকে আসছে বলে ব্রাউজার Content-Disposition হেডার মেনে
+  // সবসময় সঠিক নামে সেভ করবে — এখানে blob/CORS/retry কিছুই লাগছে না
+  window.location.href = url;
 }
 
 // ---------- UPLOAD (multi-file) ----------
