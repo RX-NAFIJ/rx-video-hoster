@@ -1537,27 +1537,58 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// Telegram getFile-কে rate-limit (429) ও সাময়িক নেটওয়ার্ক এরর সহনশীলভাবে কল করে —
+// একসাথে অনেক থাম্বনেইল/ডাউনলোড রিকোয়েস্ট গেলে Telegram মাঝেমধ্যে 429 দেয়,
+// তখন retry_after সময় অপেক্ষা করে আবার চেষ্টা করে (সর্বোচ্চ ৪ বার)।
+async function telegramGetFile(fileId, maxRetries = 4){
+  let lastErr = null;
+  for(let attempt = 0; attempt <= maxRetries; attempt++){
+    try{
+      const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+      const d = await r.json();
+      if(d.ok) return d;
+
+      // Rate limited — Telegram বলে দেয় ঠিক কত সেকেন্ড অপেক্ষা করতে হবে
+      if(d.error_code === 429){
+        const waitSec = (d.parameters && d.parameters.retry_after) ? d.parameters.retry_after : (attempt + 1);
+        lastErr = new Error(`Rate limited (retry_after ${waitSec}s)`);
+        await sleep((waitSec * 1000) + 200);
+        continue;
+      }
+
+      // ফাইল ২০MB এর বড় হলে Telegram এই এরর দেয় — retry করে লাভ নেই
+      if((d.description||'').toLowerCase().includes('too big')){
+        return { ok:false, description:'file is too big' };
+      }
+
+      // অন্য কোনো এরর (যেমন file_id invalid) — retry করে লাভ নেই
+      lastErr = new Error(d.description || 'Unknown Telegram error');
+      return d;
+    }catch(e){
+      // নেটওয়ার্ক এরর — সংক্ষিপ্ত ব্যাকঅফ দিয়ে আবার চেষ্টা
+      lastErr = e;
+      await sleep(500 * (attempt + 1));
+    }
+  }
+  console.error('telegramGetFile exhausted retries:', lastErr);
+  return { ok:false, description: lastErr ? lastErr.message : 'unknown error' };
+}
+
 // ---------- TELEGRAM FILE URL ----------
 async function resolveFileUrl(fileId){
-  try{
-    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
-    const d = await r.json();
-    if(!d.ok) return null;
-    return `https://api.telegram.org/file/bot${BOT_TOKEN}/${d.result.file_path}`;
-  }catch(e){ return null; }
+  const d = await telegramGetFile(fileId);
+  if(!d.ok) return null;
+  return `https://api.telegram.org/file/bot${BOT_TOKEN}/${d.result.file_path}`;
 }
 
 // একই কাজ করে resolveFileUrl-এর মতো, কিন্তু সাথে আসল file_path (আসল এক্সটেনশনের জন্য) ও রিটার্ন করে
 async function getTelegramFileInfo(fileId){
-  try{
-    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
-    const d = await r.json();
-    if(!d.ok) return null;
-    return {
-      url: `https://api.telegram.org/file/bot${BOT_TOKEN}/${d.result.file_path}`,
-      path: d.result.file_path
-    };
-  }catch(e){ return null; }
+  const d = await telegramGetFile(fileId);
+  if(!d.ok) return { error: d.description || 'unknown' };
+  return {
+    url: `https://api.telegram.org/file/bot${BOT_TOKEN}/${d.result.file_path}`,
+    path: d.result.file_path
+  };
 }
 
 // ---------- PREVIEW MODAL ----------
@@ -1624,8 +1655,9 @@ async function downloadItem(it){
   logVisitorAction('ডাউনলোড করলো', it.name || (it.type==='photo' ? 'ছবি' : 'ভিডিও'));
 
   const info = await getTelegramFileInfo(it.fileId);
-  if(!info){
-    showToast('ডাউনলোড লিংক পাওয়া যায়নি (ফাইল ২০MB এর বড় হতে পারে)');
+  if(!info || info.error){
+    const reason = info?.error || 'অজানা কারণ';
+    showToast(`❌ ডাউনলোড লিংক পাওয়া যায়নি (${reason})`, 5000);
     return;
   }
 
