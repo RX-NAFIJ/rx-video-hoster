@@ -1547,6 +1547,19 @@ async function resolveFileUrl(fileId){
   }catch(e){ return null; }
 }
 
+// একই কাজ করে resolveFileUrl-এর মতো, কিন্তু সাথে আসল file_path (আসল এক্সটেনশনের জন্য) ও রিটার্ন করে
+async function getTelegramFileInfo(fileId){
+  try{
+    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+    const d = await r.json();
+    if(!d.ok) return null;
+    return {
+      url: `https://api.telegram.org/file/bot${BOT_TOKEN}/${d.result.file_path}`,
+      path: d.result.file_path
+    };
+  }catch(e){ return null; }
+}
+
 // ---------- PREVIEW MODAL ----------
 const modal = document.getElementById('modal');
 const modalContent = document.getElementById('modalContent');
@@ -1605,22 +1618,38 @@ async function openPreview(it){
   }
 }
 
-// ---------- DOWNLOAD ----------
+// ---------- DOWNLOAD (আসল ফরম্যাট/এক্সটেনশনসহ) ----------
 async function downloadItem(it){
-  showToast('লিংক তৈরি হচ্ছে...');
+  showToast('ডাউনলোড হচ্ছে...');
   logVisitorAction('ডাউনলোড করলো', it.name || (it.type==='photo' ? 'ছবি' : 'ভিডিও'));
-  const url = await resolveFileUrl(it.fileId);
-  if(!url){
+
+  const info = await getTelegramFileInfo(it.fileId);
+  if(!info){
     showToast('ডাউনলোড লিংক পাওয়া যায়নি (ফাইল ২০MB এর বড় হতে পারে)');
     return;
   }
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = it.name || 'file';
-  a.target = '_blank';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+
+  // Telegram যে আসল ফাইল দিয়েছে তার প্রকৃত এক্সটেনশন বের করা (jpg/png/mp4 ইত্যাদি)
+  const realExt = (info.path.split('.').pop() || '').toLowerCase();
+  const baseName = (it.name || 'file').replace(/\.[^/.]+$/, ''); // পুরনো এক্সটেনশন থাকলে ফেলে দাও
+  const finalName = realExt ? `${baseName}.${realExt}` : baseName;
+
+  try{
+    const res = await fetch(info.url);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = finalName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
+    showToast('✅ ডাউনলোড হয়েছে');
+  }catch(e){
+    console.error(e);
+    showToast('❌ ডাউনলোড ব্যর্থ হয়েছে');
+  }
 }
 
 // ---------- UPLOAD (multi-file) ----------
