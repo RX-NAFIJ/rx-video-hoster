@@ -1666,26 +1666,36 @@ async function downloadItem(it){
   const baseName = (it.name || 'file').replace(/\.[^/.]+$/, ''); // পুরনো এক্সটেনশন থাকলে ফেলে দাও
   const finalName = realExt ? `${baseName}.${realExt}` : baseName;
 
-  try{
-    const res = await fetch(info.url);
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = finalName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
-    showToast('✅ ডাউনলোড হয়েছে');
-  }catch(e){
-    // blob fetch fail করলে (সাধারণত CORS-এর কারণে) — সরাসরি লিংক নতুন ট্যাবে খুলে দাও,
-    // যাতে ইউজার অন্তত ম্যানুয়ালি "Save As" করে ঠিক নামে সেভ করতে পারে
-    console.error('Blob download failed:', e);
-    showToast(`⚠️ সরাসরি ডাউনলোড ব্যর্থ (${e.message||'কারণ অজানা'}) — নতুন ট্যাবে খোলা হচ্ছে, Save As দিয়ে "${finalName}" নামে সেভ করো`, 6000);
-    window.open(info.url, '_blank');
+  // মোবাইল নেটওয়ার্কে মাঝেমধ্যে blob fetch ক্ষণস্থায়ীভাবে ফেইল করে —
+  // সাথে সাথে raw-লিংক fallback-এ (যেটা আসল নাম/এক্সটেনশন হারিয়ে ফেলে) না গিয়ে
+  // আগে কয়েকবার রিট্রাই করে দেখা হচ্ছে
+  const maxAttempts = 3;
+  let lastErr = null;
+  for(let attempt = 1; attempt <= maxAttempts; attempt++){
+    try{
+      const res = await fetch(info.url);
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = finalName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
+      showToast('✅ ডাউনলোড হয়েছে');
+      return;
+    }catch(e){
+      lastErr = e;
+      console.error(`Blob download attempt ${attempt} failed:`, e);
+      if(attempt < maxAttempts) await sleep(700 * attempt);
+    }
   }
+
+  // সব রিট্রাই ব্যর্থ হলে — সরাসরি লিংক নতুন ট্যাবে খুলে দাও (নাম ম্যানুয়ালি ঠিক করতে হবে)
+  showToast(`⚠️ সরাসরি ডাউনলোড ব্যর্থ (${lastErr?.message||'কারণ অজানা'}) — নতুন ট্যাবে খোলা হচ্ছে, Save As দিয়ে "${finalName}" নামে সেভ করো`, 6000);
+  window.open(info.url, '_blank');
 }
 
 // ---------- UPLOAD (multi-file) ----------
