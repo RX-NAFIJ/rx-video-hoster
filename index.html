@@ -1636,6 +1636,7 @@ async function downloadItem(it){
 
   try{
     const res = await fetch(info.url);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1647,8 +1648,11 @@ async function downloadItem(it){
     setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
     showToast('✅ ডাউনলোড হয়েছে');
   }catch(e){
-    console.error(e);
-    showToast('❌ ডাউনলোড ব্যর্থ হয়েছে');
+    // blob fetch fail করলে (সাধারণত CORS-এর কারণে) — সরাসরি লিংক নতুন ট্যাবে খুলে দাও,
+    // যাতে ইউজার অন্তত ম্যানুয়ালি "Save As" করে ঠিক নামে সেভ করতে পারে
+    console.error('Blob download failed:', e);
+    showToast(`⚠️ সরাসরি ডাউনলোড ব্যর্থ (${e.message||'কারণ অজানা'}) — নতুন ট্যাবে খোলা হচ্ছে, Save As দিয়ে "${finalName}" নামে সেভ করো`, 6000);
+    window.open(info.url, '_blank');
   }
 }
 
