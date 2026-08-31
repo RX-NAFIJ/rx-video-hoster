@@ -1653,7 +1653,13 @@ async function openPreview(it){
 function downloadItem(it){
   logVisitorAction('ডাউনলোড করলো', it.name || (it.type==='photo' ? 'ছবি' : 'ভিডিও'));
   showToast('ডাউনলোড হচ্ছে...');
-  const url = `/api/download?fileId=${encodeURIComponent(it.fileId)}&name=${encodeURIComponent(it.name || 'file')}`;
+  const params = new URLSearchParams({
+    fileId: it.fileId,
+    name: it.name || 'file',
+    mime: it.mimeType || '',
+    type: it.type || ''
+  });
+  const url = `/api/download?${params.toString()}`;
   // নিজের ডোমেইন থেকে আসছে বলে ব্রাউজার Content-Disposition হেডার মেনে
   // সবসময় সঠিক নামে সেভ করবে — এখানে blob/CORS/retry কিছুই লাগছে না
   window.location.href = url;
@@ -1730,6 +1736,7 @@ async function uploadOne(file){
           type: isVideo ? 'video' : 'photo',
           name: file.name,
           size: file.size,
+          mimeType: file.type || '',
           timestamp: Date.now()
         };
         if(thumbFileId) record.thumbFileId = thumbFileId;
